@@ -1,75 +1,46 @@
-import { NextResponse, type NextRequest } from "next/server";
-import { createServerClient } from "@supabase/ssr";
-import type { Database } from "@/lib/supabase/types";
-import { env } from "@/constants/env";
-import {
-  LOGIN_PATH,
-  isAuthEntryPath,
-  shouldProtectPath,
-} from "@/constants/auth";
-import { match } from "ts-pattern";
+import { authMiddleware } from "@clerk/nextjs";
+import { NextResponse } from "next/server";
 
-const copyCookies = (from: NextResponse, to: NextResponse) => {
-  from.cookies.getAll().forEach((cookie) => {
-    to.cookies.set({
-      name: cookie.name,
-      value: cookie.value,
-      path: cookie.path,
-      expires: cookie.expires,
-      httpOnly: cookie.httpOnly,
-      maxAge: cookie.maxAge,
-      sameSite: cookie.sameSite,
-      secure: cookie.secure,
-    });
-  });
+export default authMiddleware({
+  // 공개 라우트 설정 (인증 없이 접근 가능)
+  publicRoutes: [
+    "/",
+    "/api/webhooks(.*)",
+    "/signup",  // 기존 Supabase signup 페이지 (추후 마이그레이션 예정)
+    "/login",   // 기존 Supabase login 페이지 (추후 마이그레이션 예정)
+  ],
 
-  return to;
-};
+  // 무시할 라우트 (middleware가 실행되지 않음)
+  ignoredRoutes: [
+    "/((?!api|trpc))(_next.*|.+\\.[\\w]+$)",
+    "/api/[[...hono]]",  // Hono API 라우트는 자체 인증 처리
+  ],
 
-export async function middleware(request: NextRequest) {
-  const response = NextResponse.next({ request });
-
-  const supabase = createServerClient<Database>(
-    env.NEXT_PUBLIC_SUPABASE_URL,
-    env.NEXT_PUBLIC_SUPABASE_ANON_KEY,
-    {
-      cookies: {
-        getAll() {
-          return request.cookies.getAll();
-        },
-        setAll(cookiesToSet) {
-          cookiesToSet.forEach(({ name, value, options }) => {
-            request.cookies.set({ name, value, ...options });
-            response.cookies.set({ name, value, ...options });
-          });
-        },
-      },
+  afterAuth(auth, req) {
+    // 로그인하지 않은 사용자가 보호된 라우트에 접근하려 할 때
+    if (!auth.userId && !auth.isPublicRoute) {
+      const signInUrl = new URL('/sign-in', req.url);
+      signInUrl.searchParams.set('redirectedFrom', req.nextUrl.pathname);
+      return NextResponse.redirect(signInUrl);
     }
-  );
 
-  const {
-    data: { user },
-  } = await supabase.auth.getUser();
-
-  const decision = match({ user, pathname: request.nextUrl.pathname })
-    .when(
-      ({ user: currentUser, pathname }) =>
-        !currentUser && shouldProtectPath(pathname),
-      ({ pathname }) => {
-        const loginUrl = request.nextUrl.clone();
-        loginUrl.pathname = LOGIN_PATH;
-        loginUrl.searchParams.set("redirectedFrom", pathname);
-
-        return copyCookies(response, NextResponse.redirect(loginUrl));
+    // 로그인한 사용자가 로그인/회원가입 페이지에 접근하려 할 때
+    if (auth.userId) {
+      const path = req.nextUrl.pathname;
+      if (path === '/sign-in' || path === '/sign-up' || path === '/login' || path === '/signup') {
+        const redirectTo = req.nextUrl.searchParams.get('redirectedFrom') || '/dashboard';
+        return NextResponse.redirect(new URL(redirectTo, req.url));
       }
-    )
-    .otherwise(() => response);
+    }
 
-  return decision;
-}
+    return NextResponse.next();
+  },
+});
 
 export const config = {
   matcher: [
     "/((?!_next/static|_next/image|favicon.ico|.*\\.(?:svg|png|jpg|jpeg|gif|webp)$).*)",
+    "/",
+    "/(api|trpc)(.*)",
   ],
 };
