@@ -7,7 +7,7 @@ import { clerkClient } from '@clerk/nextjs/server';
  * Clerk 인증 미들웨어
  * Authorization 헤더에서 Clerk JWT 토큰을 추출하고 검증
  */
-export async function withClerkAuth() {
+export function withClerkAuth() {
   return async (c: Context<AppEnv>, next: Next) => {
     try {
       // Authorization 헤더에서 토큰 추출
@@ -22,19 +22,15 @@ export async function withClerkAuth() {
           return next();
         }
 
-        return c.json(
-          failure(401, 'UNAUTHORIZED', 'Authorization header is missing').data,
-          401
-        );
+        const errorResponse = failure(401, 'UNAUTHORIZED', 'Authorization header is missing');
+        return c.json(errorResponse, 401);
       }
 
       // Bearer 토큰 추출
       const token = authHeader.replace('Bearer ', '');
       if (!token) {
-        return c.json(
-          failure(401, 'UNAUTHORIZED', 'Invalid authorization header').data,
-          401
-        );
+        const errorResponse = failure(401, 'UNAUTHORIZED', 'Invalid authorization header');
+        return c.json(errorResponse, 401);
       }
 
       // Clerk 토큰 검증 및 사용자 정보 추출
@@ -44,10 +40,8 @@ export async function withClerkAuth() {
         const userId = extractUserIdFromToken(token);
 
         if (!userId) {
-          return c.json(
-            failure(401, 'UNAUTHORIZED', 'Invalid token').data,
-            401
-          );
+          const errorResponse = failure(401, 'UNAUTHORIZED', 'Invalid token');
+          return c.json(errorResponse, 401);
         }
 
         // Context에 userId 설정
@@ -59,19 +53,15 @@ export async function withClerkAuth() {
 
       } catch (error) {
         console.error('Token verification failed:', error);
-        return c.json(
-          failure(401, 'UNAUTHORIZED', 'Token verification failed').data,
-          401
-        );
+        const errorResponse = failure(401, 'UNAUTHORIZED', 'Token verification failed');
+        return c.json(errorResponse, 401);
       }
 
       return next();
     } catch (error) {
       console.error('Auth middleware error:', error);
-      return c.json(
-        failure(500, 'AUTH_ERROR', 'Authentication error').data,
-        500
-      );
+      const errorResponse = failure(500, 'AUTH_ERROR', 'Authentication error');
+      return c.json(errorResponse, 500);
     }
   };
 }
