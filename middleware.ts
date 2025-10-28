@@ -8,17 +8,27 @@ const isPublicRoute = createRouteMatcher([
   "/sign-up(.*)",
   "/api/webhooks(.*)",
   "/api/[[...hono]](.*)",  // Hono API 라우트
-  "/signup",  // 기존 Supabase signup 페이지 (추후 마이그레이션 예정)
-  "/login",   // 기존 Supabase login 페이지 (추후 마이그레이션 예정)
 ]);
 
 export default clerkMiddleware(async (auth, req) => {
   const { userId } = await auth();
   const path = req.nextUrl.pathname;
 
+  // ✅ Supabase 인증 페이지는 더 이상 사용하지 않으므로 Clerk 페이지로 리다이렉트
+  if (path === '/login' || path === '/signup') {
+    const clerkPath = path === '/login' ? '/sign-in' : '/sign-up';
+    const clerkUrl = new URL(clerkPath, req.url);
+    // redirectedFrom 파라미터가 있으면 유지
+    const redirectedFrom = req.nextUrl.searchParams.get('redirectedFrom');
+    if (redirectedFrom) {
+      clerkUrl.searchParams.set('redirectedFrom', redirectedFrom);
+    }
+    return NextResponse.redirect(clerkUrl);
+  }
+
   // 로그인한 사용자가 로그인/회원가입 페이지에 접근하려 할 때
   if (userId) {
-    if (path === '/sign-in' || path === '/sign-up' || path === '/login' || path === '/signup') {
+    if (path === '/sign-in' || path === '/sign-up') {
       const redirectTo = req.nextUrl.searchParams.get('redirectedFrom') || '/dashboard';
       return NextResponse.redirect(new URL(redirectTo, req.url));
     }
