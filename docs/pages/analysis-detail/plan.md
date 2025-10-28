@@ -618,8 +618,13 @@ export const registerAnalysisDetailRoutes = (app: Hono<AppEnv>) => {
     const supabase = getSupabase(c);
     const logger = getLogger(c);
 
-    // TODO: Clerk JWT에서 user_id 추출 (미들웨어로 구현)
-    const userId = c.get('userId'); // 가정
+    // ✅ Clerk v6: auth()는 비동기 함수이므로 await 필수
+    // Clerk JWT 미들웨어에서 이미 추출된 userId 사용
+    // 미들웨어 구현 예시:
+    // import { auth } from '@clerk/nextjs/server';
+    // const { userId } = await auth();
+    // c.set('userId', userId);
+    const userId = c.get('userId');
 
     const result = await getAnalysisById(supabase, analysisId, userId);
 
@@ -967,6 +972,11 @@ export default function AnalysisDetailPage({
   params: Promise<{ id: string }>;
 }) {
   const { id } = use(params);
+
+  // ✅ Clerk v6: 클라이언트 컴포넌트에서 useAuth() 사용
+  // 서버 컴포넌트에서는 await auth() 패턴을 사용해야 하지만,
+  // 클라이언트 컴포넌트('use client')에서는 useAuth() 훅을 그대로 사용 가능
+  // (useAuth()는 비동기 변경사항 없음)
   const { userId, isLoaded, isSignedIn } = useAuth();
 
   if (!isLoaded) {

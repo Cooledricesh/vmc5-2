@@ -233,6 +233,107 @@ graph TD
 
 ## 구현 계획
 
+### Phase 0: Clerk JWT 미들웨어 구현 (필수 선행 작업)
+
+#### Task 0.1: Clerk 인증 미들웨어 생성
+- **파일**: `src/backend/middleware/clerk-auth.ts`
+- **구현 내용**:
+
+```typescript
+import { auth } from '@clerk/nextjs/server';
+import type { Context, Next } from 'hono';
+import { failure } from '@/backend/http/response';
+
+/**
+ * ✅ Clerk v6: auth()는 비동기 함수이므로 반드시 await 사용
+ *
+ * 이 미들웨어는:
+ * 1. Clerk JWT 토큰을 검증
+ * 2. userId 추출 후 Context에 저장
+ * 3. 인증 실패 시 401 에러 반환
+ */
+export async function clerkAuthMiddleware(c: Context, next: Next) {
+  try {
+    // ✅ v6부터 auth()는 Promise를 반환하므로 await 필수
+    const { userId } = await auth();
+
+    if (!userId) {
+      return c.json(
+        failure(401, 'UNAUTHORIZED', '인증이 필요합니다').error,
+        401
+      );
+    }
+
+    // Context에 userId 저장
+    c.set('userId', userId);
+
+    await next();
+  } catch (error) {
+    console.error('Clerk auth middleware error:', error);
+    return c.json(
+      failure(401, 'UNAUTHORIZED', '인증 처리 중 오류가 발생했습니다').error,
+      401
+    );
+  }
+}
+
+/**
+ * 선택적 인증 미들웨어 (로그인하지 않아도 접근 가능)
+ * userId가 있으면 Context에 저장, 없으면 그냥 통과
+ */
+export async function optionalClerkAuth(c: Context, next: Next) {
+  try {
+    const { userId } = await auth();
+    if (userId) {
+      c.set('userId', userId);
+    }
+    await next();
+  } catch (error) {
+    console.error('Optional clerk auth error:', error);
+    await next();
+  }
+}
+```
+
+#### Task 0.2: Hono 앱에 미들웨어 등록
+- **파일**: `src/backend/hono/app.ts`
+- **수정 내용**:
+
+```typescript
+import { Hono } from 'hono';
+import { clerkAuthMiddleware } from '@/backend/middleware/clerk-auth';
+import { registerNewAnalysisRoutes } from '@/features/new-analysis/backend/route';
+import { registerSubscriptionRoutes } from '@/features/subscription/backend/route';
+import { registerAnalysisDetailRoutes } from '@/features/analysis-detail/backend/route';
+
+export function createHonoApp() {
+  const app = new Hono<AppEnv>();
+
+  // 기존 미들웨어들...
+  app.use('*', errorBoundary());
+  app.use('*', withAppContext());
+  app.use('*', withSupabase());
+
+  // ✅ Clerk 인증 미들웨어 등록
+  // /api/* 경로에 대해 인증 필수
+  app.use('/api/*', clerkAuthMiddleware);
+
+  // 라우터 등록
+  registerNewAnalysisRoutes(app);
+  registerSubscriptionRoutes(app);
+  registerAnalysisDetailRoutes(app);
+
+  return app;
+}
+```
+
+**주의사항**:
+- Clerk 미들웨어는 반드시 `withSupabase()` **이후**에 등록해야 합니다
+- `/api/` 경로에만 적용하려면 `app.use('/api/*', clerkAuthMiddleware)` 사용
+- 공개 API가 필요한 경우 `optionalClerkAuth` 사용
+
+---
+
 ### Phase 1: 기본 인프라 구축
 
 #### Task 1.1: 환경 변수 설정
@@ -1024,8 +1125,13 @@ export const registerNewAnalysisRoutes = (app: Hono<AppEnv>) => {
     const supabase = getSupabase(c);
     const logger = getLogger(c);
 
-    // TODO: Clerk JWT에서 user_id 추출 (미들웨어로 구현)
-    const userId = c.get('userId'); // 가정
+    // ✅ Clerk v6: auth()는 비동기 함수이므로 await 필수
+    // Clerk JWT 미들웨어에서 이미 추출된 userId 사용
+    // 미들웨어 구현 예시:
+    // import { auth } from '@clerk/nextjs/server';
+    // const { userId } = await auth();
+    // c.set('userId', userId);
+    const userId = c.get('userId');
 
     const result = await getUserAnalysisCount(supabase, userId);
 
@@ -1057,6 +1163,7 @@ export const registerNewAnalysisRoutes = (app: Hono<AppEnv>) => {
     const logger = getLogger(c);
     const config = c.get('config');
 
+    // ✅ Clerk v6: Clerk JWT 미들웨어에서 이미 추출된 정보 사용
     const userId = c.get('userId');
     const subscriptionTier = c.get('subscriptionTier'); // 'free' | 'pro'
 

@@ -875,8 +875,13 @@ export const registerSubscriptionRoutes = (app: Hono<AppEnv>) => {
     const supabase = getSupabase(c);
     const logger = getLogger(c);
 
-    // TODO: Clerk JWT에서 user_id 추출 (미들웨어로 구현)
-    const userId = c.get('userId'); // 가정
+    // ✅ Clerk v6: auth()는 비동기 함수이므로 await 필수
+    // Clerk JWT 미들웨어에서 이미 추출된 userId 사용
+    // 미들웨어 구현 예시:
+    // import { auth } from '@clerk/nextjs/server';
+    // const { userId } = await auth();
+    // c.set('userId', userId);
+    const userId = c.get('userId');
 
     const result = await getSubscriptionByUserId(supabase, userId);
 
@@ -908,6 +913,7 @@ export const registerSubscriptionRoutes = (app: Hono<AppEnv>) => {
     const logger = getLogger(c);
     const config = c.get('config');
 
+    // ✅ Clerk v6: Clerk JWT 미들웨어에서 이미 추출된 정보 사용
     const userId = c.get('userId');
     const clerkUserId = c.get('clerkUserId');
     const userEmail = c.get('userEmail');
