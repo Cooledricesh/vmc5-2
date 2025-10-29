@@ -24,8 +24,8 @@ export const createHonoApp = () => {
   app.use('*', withSupabase());
 
   // ✅ Clerk 인증 미들웨어 등록
-  // /api/* 경로에 대해 인증 필수
-  app.use('/api/*', clerkAuthMiddleware);
+  // 모든 API 경로에 대해 인증 필수
+  app.use('*', clerkAuthMiddleware);
 
   registerExampleRoutes(app);
   registerNewAnalysisRoutes(app);

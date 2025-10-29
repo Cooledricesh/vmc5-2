@@ -1,7 +1,10 @@
 import { handle } from 'hono/vercel';
+import { Hono } from 'hono';
 import { createHonoApp } from '@/backend/hono/app';
 
-const app = createHonoApp();
+// Wrap the core app with /api basePath for Next.js API routes
+const coreApp = createHonoApp();
+const app = new Hono().basePath('/api').route('/', coreApp);
 
 export const GET = handle(app);
 export const POST = handle(app);
