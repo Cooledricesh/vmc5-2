@@ -6,6 +6,7 @@ import type {
   DashboardStatsResponse,
   AnalysesListResponse,
 } from '../lib/dto';
+import { hasProcessingAnalysis } from '../context/helpers';
 
 export async function fetchSummary(dispatch: Dispatch<DashboardAction>) {
   dispatch({ type: 'FETCH_SUMMARY_START' });
@@ -57,8 +58,7 @@ export async function fetchAnalyses(
     });
 
     // 처리 중인 분석 감지 시 폴링 시작
-    const hasProcessing = response.data.analyses.some((a) => a.status === 'processing');
-    if (hasProcessing) {
+    if (hasProcessingAnalysis(response.data?.analyses)) {
       dispatch({ type: 'START_POLLING' });
     } else {
       dispatch({ type: 'STOP_POLLING' });

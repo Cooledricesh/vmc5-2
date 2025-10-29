@@ -1,5 +1,6 @@
 import type { DashboardState, DashboardAction } from './types';
 import { DEFAULT_PAGE_SIZE } from '../lib/constants';
+import { ensureArray } from './helpers';
 
 export const initialState: DashboardState = {
   userSummary: {
@@ -134,6 +135,7 @@ export function dashboardReducer(state: DashboardState, action: DashboardAction)
         ...state,
         analyses: {
           ...state.analyses,
+          analyses: ensureArray(state.analyses.analyses), // 헬퍼 함수 사용
           isLoading: false,
           error: action.payload.error,
         },
@@ -231,7 +233,7 @@ export function dashboardReducer(state: DashboardState, action: DashboardAction)
         ...state,
         analyses: {
           ...state.analyses,
-          analyses: state.analyses.analyses.map((analysis) =>
+          analyses: ensureArray(state.analyses.analyses).map((analysis) =>
             analysis.id === action.payload.id
               ? { ...analysis, status: action.payload.status }
               : analysis

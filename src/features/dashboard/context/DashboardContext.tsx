@@ -5,6 +5,7 @@ import { dashboardReducer, initialState } from './reducer';
 import type { DashboardState, FilterState } from './types';
 import { fetchSummary, fetchStats, fetchAnalyses } from '../actions/dashboardActions';
 import { POLLING_INTERVAL, MAX_POLLING_COUNT } from '../lib/constants';
+import { hasProcessingAnalysis, isAnalysesEmpty } from './helpers';
 
 type DashboardContextValue = {
   state: DashboardState;
@@ -78,8 +79,8 @@ export const DashboardProvider: React.FC<{ children: React.ReactNode }> = ({ chi
   // 파생 데이터 (computed)
   const computed = useMemo(
     () => ({
-      hasProcessingAnalyses: state.analyses.analyses.some((a) => a.status === 'processing'),
-      isEmpty: state.analyses.analyses.length === 0 && !state.analyses.isLoading,
+      hasProcessingAnalyses: hasProcessingAnalysis(state.analyses.analyses),
+      isEmpty: isAnalysesEmpty(state.analyses.analyses, state.analyses.isLoading),
       isInitialLoading: state.userSummary.isLoading && state.stats.isLoading && state.analyses.isLoading,
     }),
     [state]
