@@ -31,12 +31,19 @@ export function AuthTokenSetter(): null {
   const { getToken } = useAuth();
 
   useEffect(() => {
+    console.log('[AuthTokenSetter] Mounting...');
+    console.log('[AuthTokenSetter] getToken type:', typeof getToken);
+    console.log('[AuthTokenSetter] getToken:', getToken);
+
     // getToken 함수를 api-client에 등록
     // 모든 API 요청 시 자동으로 Clerk 토큰을 헤더에 추가
     setAuthTokenGetter(() => getToken());
 
+    console.log('[AuthTokenSetter] Token getter registered successfully');
+
     // Cleanup: 컴포넌트 언마운트 시 토큰 getter 제거
     return () => {
+      console.log('[AuthTokenSetter] Unmounting and clearing token getter...');
       clearAuthTokenGetter();
     };
   }, [getToken]);

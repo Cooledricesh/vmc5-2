@@ -59,19 +59,31 @@ export const clearAuthTokenGetter = (): void => {
  */
 apiClient.interceptors.request.use(
   async (config: InternalAxiosRequestConfig) => {
+    console.log('[apiClient] Interceptor executing for:', config.url);
+    console.log('[apiClient] getTokenFn exists:', !!getTokenFn);
+
     try {
       if (getTokenFn) {
+        console.log('[apiClient] Calling getTokenFn...');
         const token = await getTokenFn();
+        console.log('[apiClient] Token received:', token ? `${token.substring(0, 20)}...` : 'null');
+
         if (token) {
           config.headers.Authorization = `Bearer ${token}`;
+          console.log('[apiClient] Authorization header added');
+        } else {
+          console.warn('[apiClient] Token is null - no Authorization header added');
         }
+      } else {
+        console.warn('[apiClient] getTokenFn not registered - no Authorization header added');
       }
     } catch (error) {
       // 토큰 가져오기 실패 시 경고만 출력하고 요청은 계속 진행
       // 서버에서 401 에러를 반환하면 클라이언트가 처리합니다
-      console.warn("Failed to get auth token:", error);
+      console.warn("[apiClient] Failed to get auth token:", error);
     }
 
+    console.log('[apiClient] Final headers:', config.headers);
     return config;
   },
   (error: unknown) => {

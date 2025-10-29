@@ -16,6 +16,7 @@
     "test:e2e:codegen": "playwright codegen"
   },
   "dependencies": {
+    "@clerk/backend": "^2.19.0",
     "@clerk/nextjs": "^6.34.0",
     "@hookform/resolvers": "^4",
     "@radix-ui/react-accordion": "^1.2.3",
@@ -65,6 +66,7 @@
     "@tailwindcss/typography": "^0.5.10",
     "@testing-library/jest-dom": "^6.9.1",
     "@testing-library/react": "^16.3.0",
+    "@testing-library/user-event": "^14.6.1",
     "@types/node": "^20",
     "@types/react": "^19",
     "@types/react-dom": "^19",
