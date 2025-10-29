@@ -8,19 +8,17 @@ import {
   getAnalysesList,
 } from './service';
 import { dashboardErrorCodes } from './error';
-import { withClerkAuth, getUserId } from '@/backend/middleware/auth';
 
 export const registerDashboardRoutes = (app: Hono<AppEnv>) => {
-  // 인증 미들웨어 적용
-  app.use('/dashboard/*', withClerkAuth());
-  app.use('/analyses', withClerkAuth());
+  // 인증 미들웨어는 app.ts에서 이미 /api/*에 대해 적용됨
 
   // GET /api/dashboard/summary - 사용자 정보 및 구독 상태
   app.get('/dashboard/summary', async (c) => {
     const supabase = getSupabase(c);
     const logger = getLogger(c);
 
-    const userId = getUserId(c);
+    // clerkAuthMiddleware에서 설정한 userId 가져오기
+    const userId = c.get('userId');
     if (!userId) {
       return respond(c, failure(401, dashboardErrorCodes.unauthorized, '인증이 필요합니다'));
     }
@@ -41,7 +39,8 @@ export const registerDashboardRoutes = (app: Hono<AppEnv>) => {
     const supabase = getSupabase(c);
     const logger = getLogger(c);
 
-    const userId = getUserId(c);
+    // clerkAuthMiddleware에서 설정한 userId 가져오기
+    const userId = c.get('userId');
     if (!userId) {
       return respond(c, failure(401, dashboardErrorCodes.unauthorized, '인증이 필요합니다'));
     }
@@ -77,7 +76,8 @@ export const registerDashboardRoutes = (app: Hono<AppEnv>) => {
     const supabase = getSupabase(c);
     const logger = getLogger(c);
 
-    const userId = getUserId(c);
+    // clerkAuthMiddleware에서 설정한 userId 가져오기
+    const userId = c.get('userId');
     if (!userId) {
       return respond(c, failure(401, dashboardErrorCodes.unauthorized, '인증이 필요합니다'));
     }
