@@ -10,9 +10,17 @@ import { analysisDetailErrorCodes } from './error';
 // Mock the auth middleware
 vi.mock('../../../backend/middleware/auth', () => ({
   withClerkAuth: vi.fn(() => async (c: any, next: any) => {
+    // Set userId in context like the real middleware does
+    const mockUserId = c.get('mockUserId');
+    if (mockUserId !== undefined) {
+      c.set('userId', mockUserId);
+    }
     await next();
   }),
-  getUserId: vi.fn(),
+  getUserId: vi.fn((c: any) => {
+    // Return the userId from context
+    return c.get('userId') || null;
+  }),
 }));
 
 // Mock the context helpers
@@ -37,6 +45,13 @@ describe('Analysis Detail Routes', () => {
 
   beforeEach(() => {
     app = new Hono<AppEnv>();
+
+    // Set default mockUserId in app context before registering routes
+    app.use('*', async (c, next) => {
+      c.set('mockUserId' as never, mockUserId as never);
+      await next();
+    });
+
     registerAnalysisDetailRoutes(app);
 
     // Setup mock Supabase client
@@ -58,6 +73,11 @@ describe('Analysis Detail Routes', () => {
               },
               error: null,
             })),
+          })),
+        })),
+        update: vi.fn(() => ({
+          eq: vi.fn(() => Promise.resolve({
+            error: null,
           })),
         })),
         delete: vi.fn(() => ({
@@ -283,9 +303,20 @@ describe('Analysis Detail Routes', () => {
     });
 
     it('should return 401 when user is not authenticated', async () => {
-      mockedGetAuthUserId.mockReturnValue(null);
+      // Create a new app instance without userId in context
+      const unauthApp = new Hono<AppEnv>();
 
-      const res = await app.request(`/analyses/${mockAnalysisId}`, {
+      // Set mockUserId to null for this specific test
+      unauthApp.use('*', async (c, next) => {
+        c.set('mockUserId' as never, null as never);
+        await next();
+      });
+
+      registerAnalysisDetailRoutes(unauthApp);
+      mockedGetSupabase.mockReturnValue(mockSupabase);
+      mockedGetContextUserId.mockReturnValue(null);
+
+      const res = await unauthApp.request(`/analyses/${mockAnalysisId}`, {
         method: 'GET',
       });
 
@@ -293,6 +324,9 @@ describe('Analysis Detail Routes', () => {
       const body = await res.json();
       expect(body.ok).toBe(false);
       expect(body.error.code).toBe(analysisDetailErrorCodes.unauthorized);
+
+      // Restore mock
+      mockedGetContextUserId.mockReturnValue(mockUserId);
     });
 
     it('should handle database error', async () => {
@@ -379,9 +413,20 @@ describe('Analysis Detail Routes', () => {
     });
 
     it('should return 401 when user is not authenticated', async () => {
-      mockedGetAuthUserId.mockReturnValue(null);
+      // Create a new app instance without userId in context
+      const unauthApp = new Hono<AppEnv>();
 
-      const res = await app.request(`/analyses/${mockAnalysisId}`, {
+      // Set mockUserId to null for this specific test
+      unauthApp.use('*', async (c, next) => {
+        c.set('mockUserId' as never, null as never);
+        await next();
+      });
+
+      registerAnalysisDetailRoutes(unauthApp);
+      mockedGetSupabase.mockReturnValue(mockSupabase);
+      mockedGetContextUserId.mockReturnValue(null);
+
+      const res = await unauthApp.request(`/analyses/${mockAnalysisId}`, {
         method: 'DELETE',
       });
 
@@ -389,6 +434,9 @@ describe('Analysis Detail Routes', () => {
       const body = await res.json();
       expect(body.ok).toBe(false);
       expect(body.error.code).toBe(analysisDetailErrorCodes.unauthorized);
+
+      // Restore mock
+      mockedGetContextUserId.mockReturnValue(mockUserId);
     });
 
     it('should handle database error during deletion', async () => {
@@ -439,18 +487,36 @@ describe('Analysis Detail Routes', () => {
 
     it('should reject reanalysis for free user', async () => {
       // Mock free user
-      mockSupabase.from.mockReturnValue({
-        select: vi.fn(() => ({
-          eq: vi.fn(() => ({
-            single: vi.fn(() => Promise.resolve({
-              data: {
-                id: mockUserId,
-                subscription_tier: 'free',
-              },
-              error: null,
+      mockSupabase.from = vi.fn((table: string) => {
+        if (table === 'users') {
+          return {
+            select: vi.fn(() => ({
+              eq: vi.fn(() => ({
+                single: vi.fn(() => Promise.resolve({
+                  data: {
+                    id: mockUserId,
+                    subscription_tier: 'free',
+                  },
+                  error: null,
+                })),
+              })),
+            })),
+          };
+        }
+        return {
+          select: vi.fn(() => ({
+            eq: vi.fn(() => ({
+              single: vi.fn(),
+              maybeSingle: vi.fn(),
             })),
           })),
-        })),
+          update: vi.fn(() => ({
+            eq: vi.fn(() => Promise.resolve({ error: null })),
+          })),
+          delete: vi.fn(() => ({
+            eq: vi.fn(() => Promise.resolve({ error: null })),
+          })),
+        };
       });
 
       const res = await app.request('/analyses/reanalyze', {
@@ -548,9 +614,20 @@ describe('Analysis Detail Routes', () => {
     });
 
     it('should return 401 when user is not authenticated', async () => {
-      mockedGetAuthUserId.mockReturnValue(null);
+      // Create a new app instance without userId in context
+      const unauthApp = new Hono<AppEnv>();
 
-      const res = await app.request('/analyses/reanalyze', {
+      // Set mockUserId to null for this specific test
+      unauthApp.use('*', async (c, next) => {
+        c.set('mockUserId' as never, null as never);
+        await next();
+      });
+
+      registerAnalysisDetailRoutes(unauthApp);
+      mockedGetSupabase.mockReturnValue(mockSupabase);
+      mockedGetContextUserId.mockReturnValue(null);
+
+      const res = await unauthApp.request('/analyses/reanalyze', {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',
@@ -562,18 +639,26 @@ describe('Analysis Detail Routes', () => {
       const body = await res.json();
       expect(body.ok).toBe(false);
       expect(body.error.code).toBe(analysisDetailErrorCodes.unauthorized);
+
+      // Restore mock
+      mockedGetContextUserId.mockReturnValue(mockUserId);
     });
 
     it('should handle user fetch error', async () => {
-      mockSupabase.from.mockReturnValue({
-        select: vi.fn(() => ({
-          eq: vi.fn(() => ({
-            single: vi.fn(() => Promise.resolve({
-              data: null,
-              error: new Error('User not found'),
+      mockSupabase.from = vi.fn((table: string) => {
+        if (table === 'users') {
+          return {
+            select: vi.fn(() => ({
+              eq: vi.fn(() => ({
+                single: vi.fn(() => Promise.resolve({
+                  data: null,
+                  error: new Error('User not found'),
+                })),
+              })),
             })),
-          })),
-        })),
+          };
+        }
+        return mockSupabase.from(table);
       });
 
       const res = await app.request('/analyses/reanalyze', {
@@ -591,18 +676,36 @@ describe('Analysis Detail Routes', () => {
     });
 
     it('should handle user with null subscription tier', async () => {
-      mockSupabase.from.mockReturnValue({
-        select: vi.fn(() => ({
-          eq: vi.fn(() => ({
-            single: vi.fn(() => Promise.resolve({
-              data: {
-                id: mockUserId,
-                subscription_tier: null,
-              },
-              error: null,
+      mockSupabase.from = vi.fn((table: string) => {
+        if (table === 'users') {
+          return {
+            select: vi.fn(() => ({
+              eq: vi.fn(() => ({
+                single: vi.fn(() => Promise.resolve({
+                  data: {
+                    id: mockUserId,
+                    subscription_tier: null,
+                  },
+                  error: null,
+                })),
+              })),
+            })),
+          };
+        }
+        return {
+          select: vi.fn(() => ({
+            eq: vi.fn(() => ({
+              single: vi.fn(),
+              maybeSingle: vi.fn(),
             })),
           })),
-        })),
+          update: vi.fn(() => ({
+            eq: vi.fn(() => Promise.resolve({ error: null })),
+          })),
+          delete: vi.fn(() => ({
+            eq: vi.fn(() => Promise.resolve({ error: null })),
+          })),
+        };
       });
 
       const res = await app.request('/analyses/reanalyze', {

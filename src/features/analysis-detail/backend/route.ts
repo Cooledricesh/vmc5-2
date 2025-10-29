@@ -66,6 +66,23 @@ export const registerAnalysisDetailRoutes = (app: Hono<AppEnv>) => {
 
   // POST /api/analyses/reanalyze - 재분석 요청
   app.post('/analyses/reanalyze', async (c) => {
+    const supabase = getSupabase(c);
+    const logger = getLogger(c);
+
+    // 인증 확인을 먼저 수행
+    const userId = getUserId(c);
+    if (!userId) {
+      return respond(
+        c,
+        failure(
+          401,
+          analysisDetailErrorCodes.unauthorized,
+          '인증이 필요합니다'
+        )
+      );
+    }
+
+    // 이후 body validation 수행
     const body = await c.req.json();
     const parsedBody = ReanalyzeRequestSchema.safeParse(body);
 
@@ -77,21 +94,6 @@ export const registerAnalysisDetailRoutes = (app: Hono<AppEnv>) => {
           analysisDetailErrorCodes.validationError,
           '잘못된 요청 파라미터입니다',
           parsedBody.error.format()
-        )
-      );
-    }
-
-    const supabase = getSupabase(c);
-    const logger = getLogger(c);
-
-    const userId = getUserId(c);
-    if (!userId) {
-      return respond(
-        c,
-        failure(
-          401,
-          analysisDetailErrorCodes.unauthorized,
-          '인증이 필요합니다'
         )
       );
     }
