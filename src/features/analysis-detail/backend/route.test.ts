@@ -1,6 +1,8 @@
 import { describe, it, expect, vi, beforeEach, afterEach } from 'vitest';
 import { Hono } from 'hono';
 import type { AppEnv } from '../../../backend/hono/context';
+import { getSupabase, getUserId as getContextUserId } from '../../../backend/hono/context';
+import { getUserId as getAuthUserId } from '../../../backend/middleware/auth';
 import { registerAnalysisDetailRoutes } from './route';
 import * as service from './service';
 import { analysisDetailErrorCodes } from './error';
@@ -16,6 +18,7 @@ vi.mock('../../../backend/middleware/auth', () => ({
 // Mock the context helpers
 vi.mock('../../../backend/hono/context', () => ({
   getSupabase: vi.fn(),
+  getUserId: vi.fn(),
   getLogger: vi.fn(() => ({
     info: vi.fn(),
     error: vi.fn(),
@@ -28,6 +31,9 @@ describe('Analysis Detail Routes', () => {
   let mockSupabase: any;
   const mockUserId = 'test-user-id';
   const mockAnalysisId = 'analysis-id-123';
+  const mockedGetSupabase = vi.mocked(getSupabase);
+  const mockedGetContextUserId = vi.mocked(getContextUserId);
+  const mockedGetAuthUserId = vi.mocked(getAuthUserId);
 
   beforeEach(() => {
     app = new Hono<AppEnv>();
@@ -63,10 +69,9 @@ describe('Analysis Detail Routes', () => {
     };
 
     // Setup context mocks
-    const { getSupabase, getUserId } = require('../../../backend/hono/context');
-    getSupabase.mockReturnValue(mockSupabase);
-    const authMocks = require('../../../backend/middleware/auth');
-    authMocks.getUserId.mockReturnValue(mockUserId);
+    mockedGetSupabase.mockReturnValue(mockSupabase);
+    mockedGetContextUserId.mockReturnValue(mockUserId);
+    mockedGetAuthUserId.mockReturnValue(mockUserId);
 
     // Clear all service mocks
     vi.clearAllMocks();
@@ -278,8 +283,7 @@ describe('Analysis Detail Routes', () => {
     });
 
     it('should return 401 when user is not authenticated', async () => {
-      const authMocks = require('../../../backend/middleware/auth');
-      authMocks.getUserId.mockReturnValue(null);
+      mockedGetAuthUserId.mockReturnValue(null);
 
       const res = await app.request(`/analyses/${mockAnalysisId}`, {
         method: 'GET',
@@ -375,8 +379,7 @@ describe('Analysis Detail Routes', () => {
     });
 
     it('should return 401 when user is not authenticated', async () => {
-      const authMocks = require('../../../backend/middleware/auth');
-      authMocks.getUserId.mockReturnValue(null);
+      mockedGetAuthUserId.mockReturnValue(null);
 
       const res = await app.request(`/analyses/${mockAnalysisId}`, {
         method: 'DELETE',
@@ -545,8 +548,7 @@ describe('Analysis Detail Routes', () => {
     });
 
     it('should return 401 when user is not authenticated', async () => {
-      const authMocks = require('../../../backend/middleware/auth');
-      authMocks.getUserId.mockReturnValue(null);
+      mockedGetAuthUserId.mockReturnValue(null);
 
       const res = await app.request('/analyses/reanalyze', {
         method: 'POST',

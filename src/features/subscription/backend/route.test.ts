@@ -1,6 +1,8 @@
 import { describe, it, expect, vi, beforeEach, afterEach } from 'vitest';
 import { Hono } from 'hono';
 import type { AppEnv } from '@/backend/hono/context';
+import { getSupabase, getUserId as getContextUserId } from '@/backend/hono/context';
+import { getUserId as getAuthUserId, getUserEmail } from '@/backend/middleware/auth';
 import { registerSubscriptionRoutes } from './route';
 import * as service from './service';
 import { subscriptionErrorCodes } from './error';
@@ -18,6 +20,7 @@ vi.mock('@/backend/middleware/auth', () => ({
 // Mock the context helpers
 vi.mock('@/backend/hono/context', () => ({
   getSupabase: vi.fn(),
+  getUserId: vi.fn(),
   getLogger: vi.fn(() => ({
     info: vi.fn(),
     error: vi.fn(),
@@ -50,6 +53,10 @@ describe('Subscription Routes', () => {
   const mockClerkUserId = 'clerk-user-id';
   const mockUserEmail = 'test@example.com';
   const mockUserName = 'Test User';
+  const mockedGetSupabase = vi.mocked(getSupabase);
+  const mockedGetContextUserId = vi.mocked(getContextUserId);
+  const mockedGetAuthUserId = vi.mocked(getAuthUserId);
+  const mockedGetUserEmail = vi.mocked(getUserEmail);
 
   beforeEach(() => {
     app = new Hono<AppEnv>();
@@ -75,10 +82,10 @@ describe('Subscription Routes', () => {
     };
 
     // Setup context mocks
-    const { getSupabase, getUserId } = require('@/backend/hono/context');
-    getSupabase.mockReturnValue(mockSupabase);
-    const authMocks = require('@/backend/middleware/auth');
-    authMocks.getUserId.mockReturnValue(mockUserId);
+    mockedGetSupabase.mockReturnValue(mockSupabase);
+    mockedGetContextUserId.mockReturnValue(mockUserId);
+    mockedGetAuthUserId.mockReturnValue(mockUserId);
+    mockedGetUserEmail.mockReturnValue(mockUserEmail);
 
     // Clear all service mocks
     vi.clearAllMocks();
@@ -123,8 +130,7 @@ describe('Subscription Routes', () => {
     });
 
     it('should return 401 when user is not authenticated', async () => {
-      const authMocks = require('@/backend/middleware/auth');
-      authMocks.getUserId.mockReturnValue(null);
+      mockedGetAuthUserId.mockReturnValue(null);
 
       const res = await app.request('/subscription', {
         method: 'GET',
@@ -312,8 +318,7 @@ describe('Subscription Routes', () => {
     });
 
     it('should return 401 when not authenticated', async () => {
-      const authMocks = require('@/backend/middleware/auth');
-      authMocks.getUserId.mockReturnValue(null);
+      mockedGetAuthUserId.mockReturnValue(null);
 
       const res = await app.request('/subscription/billing-key', {
         method: 'POST',
@@ -438,8 +443,7 @@ describe('Subscription Routes', () => {
     });
 
     it('should return 401 when not authenticated', async () => {
-      const authMocks = require('@/backend/middleware/auth');
-      authMocks.getUserId.mockReturnValue(null);
+      mockedGetAuthUserId.mockReturnValue(null);
 
       const res = await app.request('/subscription/cancel', {
         method: 'DELETE',
@@ -798,8 +802,7 @@ describe('Subscription Routes', () => {
     });
 
     it('should return 401 when not authenticated', async () => {
-      const authMocks = require('@/backend/middleware/auth');
-      authMocks.getUserId.mockReturnValue(null);
+      mockedGetAuthUserId.mockReturnValue(null);
 
       const res = await app.request('/subscription/payments', {
         method: 'GET',

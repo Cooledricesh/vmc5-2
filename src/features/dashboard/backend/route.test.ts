@@ -4,6 +4,7 @@ import type { AppEnv } from '../../../backend/hono/context';
 import { registerDashboardRoutes } from './route';
 import * as service from './service';
 import { dashboardErrorCodes } from './error';
+import { getSupabase, getLogger } from '../../../backend/hono/context';
 
 // Mock the context helpers
 vi.mock('../../../backend/hono/context', () => ({
@@ -19,6 +20,7 @@ describe('Dashboard Routes', () => {
   let app: Hono<AppEnv>;
   let mockSupabase: any;
   const mockUserId = 'test-user-id';
+  const mockedGetSupabase = vi.mocked(getSupabase);
 
   beforeEach(() => {
     app = new Hono<AppEnv>();
@@ -35,8 +37,7 @@ describe('Dashboard Routes', () => {
     mockSupabase = {};
 
     // Setup context mocks
-    const { getSupabase } = require('../../../backend/hono/context');
-    getSupabase.mockReturnValue(mockSupabase);
+    mockedGetSupabase.mockReturnValue(mockSupabase);
 
     // Clear all service mocks
     vi.clearAllMocks();

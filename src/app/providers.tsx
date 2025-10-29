@@ -9,6 +9,7 @@ import {
 } from "@tanstack/react-query";
 import { ThemeProvider } from "next-themes";
 import { ClerkProvider } from "@clerk/nextjs";
+import { AuthTokenSetter } from "@/lib/remote/AuthTokenSetter";
 
 function makeQueryClient() {
   return new QueryClient({
@@ -47,6 +48,7 @@ export default function Providers({ children }: { children: React.ReactNode }) {
 
   return (
     <ClerkProvider>
+      <AuthTokenSetter />
       <ThemeProvider
         attribute="class"
         defaultTheme="system"
