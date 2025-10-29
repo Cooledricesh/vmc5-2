@@ -172,6 +172,151 @@ describe('Clerk Auth Middleware - Bearer Token', () => {
       expect(mockGetUserByClerkId).toHaveBeenCalledWith('user_123');
       expect(mockNext).toHaveBeenCalled();
     });
+
+    it('🔴 RED: 사용자가 Supabase에 없으면 자동으로 생성해야 함', async () => {
+      (mockContext.req!.header as any).mockReturnValue('Bearer valid_token');
+
+      mockVerifyToken.mockResolvedValue({
+        sub: 'user_new_123',
+      });
+
+      const mockGetUserByClerkId = vi.fn(() =>
+        Promise.resolve({
+          success: true,
+          data: null, // 사용자가 없음
+        })
+      );
+
+      const mockUpsertUser = vi.fn(() =>
+        Promise.resolve({
+          success: true,
+        })
+      );
+
+      // Clerk client mock
+      const { createClerkClient } = await import('@clerk/backend');
+      (createClerkClient as any).mockReturnValue({
+        users: {
+          getUser: vi.fn(() =>
+            Promise.resolve({
+              id: 'user_new_123',
+              emailAddresses: [{ emailAddress: 'newuser@example.com' }],
+              firstName: 'New',
+              lastName: 'User',
+              imageUrl: 'https://example.com/avatar.jpg',
+            })
+          ),
+        },
+      });
+
+      const UserSyncService = await import('@/features/auth/backend/user-sync.service');
+      (UserSyncService.UserSyncService as any).mockImplementation(function () {
+        return {
+          getUserByClerkId: mockGetUserByClerkId,
+          upsertUser: mockUpsertUser,
+        };
+      });
+
+      await clerkAuthMiddleware(mockContext as Context<AppEnv>, mockNext);
+
+      expect(mockContext.set).toHaveBeenCalledWith('userId', 'user_new_123');
+      expect(mockGetUserByClerkId).toHaveBeenCalledWith('user_new_123');
+      expect(mockUpsertUser).toHaveBeenCalledWith({
+        clerkUserId: 'user_new_123',
+        email: 'newuser@example.com',
+        name: 'New User',
+        profileImage: 'https://example.com/avatar.jpg',
+      });
+      expect(mockNext).toHaveBeenCalled();
+    });
+
+    it('사용자 자동 생성 실패 시에도 인증은 계속 진행되어야 함', async () => {
+      (mockContext.req!.header as any).mockReturnValue('Bearer valid_token');
+
+      mockVerifyToken.mockResolvedValue({
+        sub: 'user_fail_123',
+      });
+
+      const mockGetUserByClerkId = vi.fn(() =>
+        Promise.resolve({
+          success: true,
+          data: null, // 사용자가 없음
+        })
+      );
+
+      const mockUpsertUser = vi.fn(() =>
+        Promise.resolve({
+          success: false,
+          error: 'Database error',
+        })
+      );
+
+      // Clerk client mock
+      const { createClerkClient } = await import('@clerk/backend');
+      (createClerkClient as any).mockReturnValue({
+        users: {
+          getUser: vi.fn(() =>
+            Promise.resolve({
+              id: 'user_fail_123',
+              emailAddresses: [{ emailAddress: 'fail@example.com' }],
+              firstName: 'Fail',
+              lastName: 'User',
+            })
+          ),
+        },
+      });
+
+      const UserSyncService = await import('@/features/auth/backend/user-sync.service');
+      (UserSyncService.UserSyncService as any).mockImplementation(function () {
+        return {
+          getUserByClerkId: mockGetUserByClerkId,
+          upsertUser: mockUpsertUser,
+        };
+      });
+
+      await clerkAuthMiddleware(mockContext as Context<AppEnv>, mockNext);
+
+      // 사용자 생성 실패해도 인증은 성공해야 함
+      expect(mockContext.set).toHaveBeenCalledWith('userId', 'user_fail_123');
+      expect(mockNext).toHaveBeenCalled();
+    });
+
+    it('Clerk API 호출 실패 시에도 인증은 계속 진행되어야 함', async () => {
+      (mockContext.req!.header as any).mockReturnValue('Bearer valid_token');
+
+      mockVerifyToken.mockResolvedValue({
+        sub: 'user_clerk_fail_123',
+      });
+
+      const mockGetUserByClerkId = vi.fn(() =>
+        Promise.resolve({
+          success: true,
+          data: null, // 사용자가 없음
+        })
+      );
+
+      // Clerk client mock - API 실패
+      const { createClerkClient } = await import('@clerk/backend');
+      (createClerkClient as any).mockReturnValue({
+        users: {
+          getUser: vi.fn(() => Promise.reject(new Error('Clerk API error'))),
+        },
+      });
+
+      const UserSyncService = await import('@/features/auth/backend/user-sync.service');
+      (UserSyncService.UserSyncService as any).mockImplementation(function () {
+        return {
+          getUserByClerkId: mockGetUserByClerkId,
+          upsertUser: vi.fn(() => Promise.resolve({ success: true })),
+        };
+      });
+
+      await clerkAuthMiddleware(mockContext as Context<AppEnv>, mockNext);
+
+      // Clerk API 실패해도 인증은 성공해야 함
+      expect(mockContext.set).toHaveBeenCalledWith('userId', 'user_clerk_fail_123');
+      expect(mockNext).toHaveBeenCalled();
+    });
   });
 
   describe('optionalClerkAuth - Bearer Token', () => {

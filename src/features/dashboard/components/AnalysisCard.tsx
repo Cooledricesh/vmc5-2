@@ -30,7 +30,7 @@ export function AnalysisCard({ analysis }: AnalysisCardProps) {
   const genderLabel = GENDER_LABELS[analysis.gender];
 
   const content = (
-    <Card className={analysis.status === 'completed' ? 'cursor-pointer hover:shadow-md transition-shadow' : ''}>
+    <Card className={analysis.status === 'completed' ? 'cursor-pointer hover:shadow-md transition-shadow' : ''} data-testid="analysis-card">
         <CardHeader>
           <div className="flex items-start justify-between">
             <CardTitle className="text-lg">{analysis.subject_name}</CardTitle>

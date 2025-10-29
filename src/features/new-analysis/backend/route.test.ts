@@ -380,6 +380,7 @@ describe('New Analysis Routes', () => {
         subject_name: '홍길동',
         birth_date: '1990-01-01',
         gender: 'male',
+        // birth_time is omitted
       };
 
       const mockResponse = {
@@ -405,12 +406,16 @@ describe('New Analysis Routes', () => {
       expect(res.status).toBe(200);
       const body = await res.json();
       expect(body.ok).toBe(true);
+      // When birth_time is omitted, zod schema with .optional() will not include it in the parsed data
       expect(service.createNewAnalysis).toHaveBeenCalledWith(
         mockSupabase,
         mockUserId,
         'pro',
         expect.objectContaining({
-          birth_time: null,
+          subject_name: '홍길동',
+          birth_date: '1990-01-01',
+          gender: 'male',
+          // birth_time will be undefined (not included in object)
         }),
         'test_gemini_key'
       );

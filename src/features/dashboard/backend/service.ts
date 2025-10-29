@@ -9,7 +9,35 @@ import type {
 import { dashboardErrorCodes, type DashboardServiceError } from './error';
 
 /**
+ * Clerk User ID로 내부 UUID 조회 헬퍼
+ * @param client - Supabase 클라이언트
+ * @param clerkUserId - Clerk User ID
+ * @returns 내부 UUID 또는 에러
+ */
+async function getUserIdByClerkId(
+  client: SupabaseClient,
+  clerkUserId: string,
+): Promise<HandlerResult<string, DashboardServiceError, unknown>> {
+  const { data, error } = await client
+    .from('users')
+    .select('id')
+    .eq('clerk_user_id', clerkUserId)
+    .maybeSingle();
+
+  if (error) {
+    return failure(500, dashboardErrorCodes.databaseError, error.message);
+  }
+
+  if (!data) {
+    return failure(404, dashboardErrorCodes.userNotFound, '사용자를 찾을 수 없습니다');
+  }
+
+  return success(data.id);
+}
+
+/**
  * 사용자 정보 및 구독 상태 조회
+ * @param userId - Clerk User ID (e.g., "user_34k7JqEd8il5046H7aeiCZ1qA9G")
  */
 export async function getDashboardSummary(
   client: SupabaseClient,
@@ -19,6 +47,7 @@ export async function getDashboardSummary(
     .from('users')
     .select(`
       id,
+      clerk_user_id,
       name,
       email,
       subscription_tier,
@@ -30,7 +59,7 @@ export async function getDashboardSummary(
         card_last_4digits
       )
     `)
-    .eq('id', userId)
+    .eq('clerk_user_id', userId)
     .maybeSingle();
 
   if (error) {
@@ -63,16 +92,24 @@ export async function getDashboardSummary(
 
 /**
  * 통계 정보 조회
+ * @param clerkUserId - Clerk User ID (e.g., "user_34k7JqEd8il5046H7aeiCZ1qA9G")
  */
 export async function getDashboardStats(
   client: SupabaseClient,
-  userId: string,
+  clerkUserId: string,
 ): Promise<HandlerResult<DashboardStatsResponse, DashboardServiceError, unknown>> {
+  // 1. Clerk ID로 내부 UUID 조회
+  const userIdResult = await getUserIdByClerkId(client, clerkUserId);
+  if (!userIdResult.ok) {
+    return userIdResult as HandlerResult<DashboardStatsResponse, DashboardServiceError, unknown>;
+  }
+  const internalUserId = userIdResult.data;
+
   // 총 분석 횟수
   const { count: totalCount, error: totalError } = await client
     .from('analyses')
     .select('*', { count: 'exact', head: true })
-    .eq('user_id', userId);
+    .eq('user_id', internalUserId);
 
   if (totalError) {
     return failure(500, dashboardErrorCodes.databaseError, totalError.message);
@@ -85,7 +122,7 @@ export async function getDashboardStats(
   const { count: monthlyCount, error: monthlyError } = await client
     .from('analyses')
     .select('*', { count: 'exact', head: true })
-    .eq('user_id', userId)
+    .eq('user_id', internalUserId)
     .gte('created_at', startOfMonth.toISOString());
 
   if (monthlyError) {
@@ -100,7 +137,7 @@ export async function getDashboardStats(
   const { count: weeklyCount, error: weeklyError } = await client
     .from('analyses')
     .select('*', { count: 'exact', head: true })
-    .eq('user_id', userId)
+    .eq('user_id', internalUserId)
     .gte('created_at', startOfWeek.toISOString());
 
   if (weeklyError) {
@@ -116,12 +153,19 @@ export async function getDashboardStats(
 
 /**
  * 분석 목록 조회
+ * @param clerkUserId - Clerk User ID (e.g., "user_34k7JqEd8il5046H7aeiCZ1qA9G")
  */
 export async function getAnalysesList(
   client: SupabaseClient,
-  userId: string,
+  clerkUserId: string,
   params: AnalysesListRequest,
 ): Promise<HandlerResult<AnalysesListResponse, DashboardServiceError, unknown>> {
+  // 1. Clerk ID로 내부 UUID 조회
+  const userIdResult = await getUserIdByClerkId(client, clerkUserId);
+  if (!userIdResult.ok) {
+    return userIdResult as HandlerResult<AnalysesListResponse, DashboardServiceError, unknown>;
+  }
+  const internalUserId = userIdResult.data;
   const { period, sort, page, limit } = params;
 
   // 기간 필터 계산
@@ -138,7 +182,7 @@ export async function getAnalysesList(
   let countQuery = client
     .from('analyses')
     .select('*', { count: 'exact', head: true })
-    .eq('user_id', userId);
+    .eq('user_id', internalUserId);
 
   if (createdAtFilter) {
     countQuery = countQuery.gte('created_at', createdAtFilter.toISOString());
@@ -154,7 +198,7 @@ export async function getAnalysesList(
   let listQuery = client
     .from('analyses')
     .select('id, subject_name, birth_date, gender, ai_model, status, created_at, view_count')
-    .eq('user_id', userId);
+    .eq('user_id', internalUserId);
 
   if (createdAtFilter) {
     listQuery = listQuery.gte('created_at', createdAtFilter.toISOString());

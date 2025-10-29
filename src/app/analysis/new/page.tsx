@@ -1,6 +1,7 @@
 'use client';
 
 import { NewAnalysisProvider } from '@/features/new-analysis/context/NewAnalysisContext';
+import { AnalysisForm } from '@/features/new-analysis/components/AnalysisForm';
 
 export default function NewAnalysisPage() {
   return (
@@ -13,14 +14,7 @@ export default function NewAnalysisPage() {
           </p>
         </header>
 
-        <div className="bg-white rounded-lg shadow-md p-6">
-          <p className="text-center text-gray-500">
-            폼 컴포넌트가 여기에 표시됩니다
-          </p>
-          <p className="text-center text-sm text-gray-400 mt-2">
-            (개발 중)
-          </p>
-        </div>
+        <AnalysisForm />
       </div>
     </NewAnalysisProvider>
   );

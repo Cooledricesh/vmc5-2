@@ -34,7 +34,15 @@ export function formatDate(dateString: string): string {
 export function formatDateKorean(dateString: string): string {
   try {
     const date = parseISO(dateString);
-    return format(date, 'yyyy년 MM월 dd일', { locale: ko });
+    if (isNaN(date.getTime())) {
+      console.error('Invalid date string:', dateString);
+      return dateString;
+    }
+    // UTC 시간을 그대로 사용하기 위해 format 대신 수동으로 포맷
+    const year = date.getUTCFullYear();
+    const month = String(date.getUTCMonth() + 1).padStart(2, '0');
+    const day = String(date.getUTCDate()).padStart(2, '0');
+    return `${year}년 ${month}월 ${day}일`;
   } catch (error) {
     console.error('Invalid date string:', dateString);
     return dateString;
@@ -60,6 +68,10 @@ export function formatDateTime(dateString: string): string {
 export function calculateAge(birthDateString: string): number {
   try {
     const birthDate = parseISO(birthDateString);
+    if (isNaN(birthDate.getTime())) {
+      console.error('Invalid birth date string:', birthDateString);
+      return 0;
+    }
     const today = new Date();
     let age = today.getFullYear() - birthDate.getFullYear();
     const monthDiff = today.getMonth() - birthDate.getMonth();
@@ -81,6 +93,10 @@ export function calculateAge(birthDateString: string): number {
 export function isToday(dateString: string): boolean {
   try {
     const date = parseISO(dateString);
+    if (isNaN(date.getTime())) {
+      console.error('Invalid date string:', dateString);
+      return false;
+    }
     const today = new Date();
     return (
       date.getFullYear() === today.getFullYear() &&
@@ -99,6 +115,10 @@ export function isToday(dateString: string): boolean {
 export function daysUntilNextPayment(nextPaymentDateString: string): number {
   try {
     const nextPaymentDate = parseISO(nextPaymentDateString);
+    if (isNaN(nextPaymentDate.getTime())) {
+      console.error('Invalid payment date string:', nextPaymentDateString);
+      return 0;
+    }
     const today = new Date();
     const diffTime = nextPaymentDate.getTime() - today.getTime();
     const diffDays = Math.ceil(diffTime / (1000 * 60 * 60 * 24));

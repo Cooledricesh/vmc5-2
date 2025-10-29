@@ -1,6 +1,6 @@
 'use client';
 
-import { useEffect, useRef, useState } from 'react';
+import { useCallback, useEffect, useRef, useState } from 'react';
 
 interface UseScrollAnimationOptions {
   threshold?: number;
@@ -10,7 +10,7 @@ interface UseScrollAnimationOptions {
 }
 
 interface UseScrollAnimationReturn {
-  ref: React.RefObject<HTMLElement>;
+  ref: React.RefCallback<HTMLElement> | React.RefObject<HTMLElement>;
   isVisible: boolean;
   hasAnimated: boolean;
 }
@@ -32,63 +32,83 @@ export function useScrollAnimation(
 
   const [isVisible, setIsVisible] = useState(false);
   const [hasAnimated, setHasAnimated] = useState(false);
-  const ref = useRef<HTMLElement>(null);
   const timeoutRef = useRef<NodeJS.Timeout | undefined>(undefined);
+  const observerRef = useRef<IntersectionObserver | null>(null);
+  const elementRef = useRef<HTMLElement | null>(null);
 
-  useEffect(() => {
-    const element = ref.current;
-    if (!element) return;
+  const refCallback = useCallback(
+    (node: HTMLElement | null) => {
+      // Clean up previous observer
+      if (observerRef.current) {
+        observerRef.current.disconnect();
+        observerRef.current = null;
+      }
 
-    const observer = new IntersectionObserver(
-      ([entry]) => {
-        const shouldShow = entry.isIntersecting;
+      if (timeoutRef.current) {
+        clearTimeout(timeoutRef.current);
+        timeoutRef.current = undefined;
+      }
 
-        if (shouldShow) {
-          // 지연 시간이 있으면 타임아웃 설정
-          if (delay > 0) {
-            timeoutRef.current = setTimeout(() => {
+      elementRef.current = node;
+
+      if (!node) return;
+
+      const observer = new IntersectionObserver(
+        ([entry]) => {
+          const shouldShow = entry.isIntersecting;
+
+          if (shouldShow) {
+            // 지연 시간이 있으면 타임아웃 설정
+            if (delay > 0) {
+              timeoutRef.current = setTimeout(() => {
+                setIsVisible(true);
+                setHasAnimated(true);
+              }, delay);
+            } else {
               setIsVisible(true);
               setHasAnimated(true);
-            }, delay);
-          } else {
-            setIsVisible(true);
-            setHasAnimated(true);
-          }
-
-          // triggerOnce가 true면 한 번만 실행
-          if (triggerOnce) {
-            observer.unobserve(element);
-          }
-        } else {
-          // triggerOnce가 false면 요소가 뷰포트를 벗어날 때 다시 숨김
-          if (!triggerOnce) {
-            if (timeoutRef.current) {
-              clearTimeout(timeoutRef.current);
             }
-            setIsVisible(false);
+
+            // triggerOnce가 true면 한 번만 실행
+            if (triggerOnce) {
+              observer.unobserve(node);
+            }
+          } else {
+            // triggerOnce가 false면 요소가 뷰포트를 벗어날 때 다시 숨김
+            if (!triggerOnce) {
+              if (timeoutRef.current) {
+                clearTimeout(timeoutRef.current);
+                timeoutRef.current = undefined;
+              }
+              setIsVisible(false);
+            }
           }
+        },
+        {
+          threshold,
+          rootMargin,
         }
-      },
-      {
-        threshold,
-        rootMargin,
-      }
-    );
+      );
 
-    observer.observe(element);
+      observerRef.current = observer;
+      observer.observe(node);
+    },
+    [threshold, rootMargin, triggerOnce, delay]
+  );
 
+  useEffect(() => {
     return () => {
       if (timeoutRef.current) {
         clearTimeout(timeoutRef.current);
       }
-      if (element) {
-        observer.unobserve(element);
+      if (observerRef.current) {
+        observerRef.current.disconnect();
       }
     };
-  }, [threshold, rootMargin, triggerOnce, delay]);
+  }, []);
 
   return {
-    ref: ref as React.RefObject<HTMLElement>,
+    ref: refCallback as React.RefCallback<HTMLElement>,
     isVisible,
     hasAnimated,
   };

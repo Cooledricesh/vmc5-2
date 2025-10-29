@@ -29,7 +29,7 @@ describe('PaymentMethodModal', () => {
     it('should render when isOpen is true', () => {
       render(<PaymentMethodModal isOpen={true} onClose={mockOnClose} onAdd={mockOnAdd} />);
 
-      expect(screen.getByText('결제 수단 등록')).toBeInTheDocument();
+      expect(screen.getByRole('heading', { name: '결제 수단 등록' })).toBeInTheDocument();
       expect(screen.getByText('구독 결제에 사용할 결제 수단을 등록해주세요')).toBeInTheDocument();
     });
 
@@ -79,7 +79,7 @@ describe('PaymentMethodModal', () => {
     it('should disable submit button when terms not accepted', () => {
       render(<PaymentMethodModal isOpen={true} onClose={mockOnClose} onAdd={mockOnAdd} />);
 
-      const submitButton = screen.getByText('결제 수단 등록');
+      const submitButton = screen.getByRole('button', { name: '결제 수단 등록' });
       expect(submitButton).toBeDisabled();
     });
 
@@ -90,7 +90,7 @@ describe('PaymentMethodModal', () => {
       const termsCheckbox = screen.getByRole('checkbox');
       await user.click(termsCheckbox);
 
-      const submitButton = screen.getByText('결제 수단 등록');
+      const submitButton = screen.getByRole('button', { name: '결제 수단 등록' });
       expect(submitButton).not.toBeDisabled();
     });
   });
@@ -103,7 +103,7 @@ describe('PaymentMethodModal', () => {
       const termsCheckbox = screen.getByRole('checkbox');
       await user.click(termsCheckbox);
 
-      const submitButton = screen.getByText('결제 수단 등록');
+      const submitButton = screen.getByRole('button', { name: '결제 수단 등록' });
       await user.click(submitButton);
 
       expect(mockOnAdd).toHaveBeenCalled();

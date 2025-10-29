@@ -1,0 +1,148 @@
+<!DOCTYPE html>
+<html>
+<head>
+  <title>Cookie Extractor for Playwright</title>
+  <style>
+    body {
+      font-family: Arial, sans-serif;
+      max-width: 800px;
+      margin: 50px auto;
+      padding: 20px;
+    }
+    .instruction {
+      background: #f0f0f0;
+      padding: 15px;
+      border-radius: 5px;
+      margin-bottom: 20px;
+    }
+    textarea {
+      width: 100%;
+      height: 300px;
+      font-family: monospace;
+      padding: 10px;
+    }
+    button {
+      background: #4CAF50;
+      color: white;
+      padding: 10px 20px;
+      border: none;
+      border-radius: 5px;
+      cursor: pointer;
+      font-size: 16px;
+      margin: 10px 5px;
+    }
+    button:hover {
+      background: #45a049;
+    }
+    .success {
+      background: #d4edda;
+      color: #155724;
+      padding: 15px;
+      border-radius: 5px;
+      margin-top: 20px;
+      display: none;
+    }
+  </style>
+</head>
+<body>
+  <h1>🍪 Playwright 인증 상태 추출기</h1>
+
+  <div class="instruction">
+    <h3>사용 방법:</h3>
+    <ol>
+      <li><strong>https://vmc5-2.vercel.app</strong>에 로그인하세요</li>
+      <li>이 HTML 파일을 브라우저에서 엽니다</li>
+      <li>"쿠키 추출" 버튼을 클릭합니다</li>
+      <li>"복사" 버튼을 클릭합니다</li>
+      <li>복사한 내용을 <code>tests-e2e/.auth/user.json</code>에 붙여넣습니다</li>
+    </ol>
+  </div>
+
+  <button onclick="extractCookies()">🍪 쿠키 추출</button>
+  <button onclick="copyToClipboard()">📋 복사</button>
+  <button onclick="downloadJSON()">💾 다운로드</button>
+
+  <div class="success" id="success">
+    ✅ 클립보드에 복사되었습니다!
+  </div>
+
+  <h3>추출된 JSON:</h3>
+  <textarea id="output" readonly placeholder="'쿠키 추출' 버튼을 클릭하세요..."></textarea>
+
+  <script>
+    let jsonData = '';
+
+    function extractCookies() {
+      // 모든 쿠키 가져오기
+      const cookies = document.cookie.split(';').map(cookie => {
+        const [name, ...valueParts] = cookie.trim().split('=');
+        const value = valueParts.join('=');
+
+        return {
+          name: name,
+          value: value,
+          domain: window.location.hostname,
+          path: '/',
+          expires: -1,
+          httpOnly: false,
+          secure: window.location.protocol === 'https:',
+          sameSite: 'Lax'
+        };
+      }).filter(c => c.name && c.value);
+
+      // Playwright storage state 형식
+      const storageState = {
+        cookies: cookies,
+        origins: [
+          {
+            origin: window.location.origin,
+            localStorage: []
+          }
+        ]
+      };
+
+      jsonData = JSON.stringify(storageState, null, 2);
+      document.getElementById('output').value = jsonData;
+
+      console.log('쿠키 추출 완료:', storageState);
+      alert(`${cookies.length}개의 쿠키를 추출했습니다!`);
+    }
+
+    function copyToClipboard() {
+      const output = document.getElementById('output');
+      if (!output.value) {
+        alert('먼저 "쿠키 추출" 버튼을 클릭하세요!');
+        return;
+      }
+
+      output.select();
+      document.execCommand('copy');
+
+      const success = document.getElementById('success');
+      success.style.display = 'block';
+      setTimeout(() => {
+        success.style.display = 'none';
+      }, 3000);
+    }
+
+    function downloadJSON() {
+      if (!jsonData) {
+        alert('먼저 "쿠키 추출" 버튼을 클릭하세요!');
+        return;
+      }
+
+      const blob = new Blob([jsonData], { type: 'application/json' });
+      const url = URL.createObjectURL(blob);
+      const a = document.createElement('a');
+      a.href = url;
+      a.download = 'user.json';
+      document.body.appendChild(a);
+      a.click();
+      document.body.removeChild(a);
+      URL.revokeObjectURL(url);
+
+      alert('user.json 파일이 다운로드되었습니다!\ntests-e2e/.auth/ 폴더로 이동하세요.');
+    }
+  </script>
+</body>
+</html>

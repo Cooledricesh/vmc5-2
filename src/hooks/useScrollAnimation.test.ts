@@ -58,30 +58,36 @@ class MockIntersectionObserver {
 
 describe('useScrollAnimation', () => {
   let mockIntersectionObserverCallback: IntersectionObserverCallback | null = null;
+  let IntersectionObserverMock: any;
 
   beforeEach(() => {
     vi.useFakeTimers();
     mockIntersectionObserverCallback = null;
 
     // IntersectionObserver를 mock으로 교체
-    global.IntersectionObserver = vi.fn((callback, options) => {
+    IntersectionObserverMock = vi.fn(function (
+      this: any,
+      callback: IntersectionObserverCallback,
+      options?: IntersectionObserverInit
+    ) {
       mockIntersectionObserverCallback = callback;
-      return {
-        observe: vi.fn(),
-        unobserve: vi.fn(),
-        disconnect: vi.fn(),
-        takeRecords: vi.fn(() => []),
-        root: null,
-        rootMargin: options?.rootMargin || '',
-        thresholds: Array.isArray(options?.threshold)
-          ? options.threshold
-          : [options?.threshold || 0],
-      };
-    }) as any;
+      this.observe = vi.fn();
+      this.unobserve = vi.fn();
+      this.disconnect = vi.fn();
+      this.takeRecords = vi.fn(() => []);
+      this.root = null;
+      this.rootMargin = options?.rootMargin || '';
+      this.thresholds = Array.isArray(options?.threshold)
+        ? options.threshold
+        : [options?.threshold || 0];
+      return this;
+    });
+
+    vi.stubGlobal('IntersectionObserver', IntersectionObserverMock);
   });
 
   afterEach(() => {
-    vi.restoreAllMocks();
+    vi.unstubAllGlobals();
     vi.useRealTimers();
     mockIntersectionObserverCallback = null;
   });
@@ -133,7 +139,8 @@ describe('useScrollAnimation', () => {
       const { result } = renderHook(() => useScrollAnimation());
 
       act(() => {
-        (result.current.ref as React.MutableRefObject<HTMLElement>).current = mockElement;
+        // ref callback 호출
+        (result.current.ref as React.RefCallback<HTMLElement>)(mockElement);
       });
 
       // Assert - IntersectionObserver 생성자가 호출됨
@@ -148,7 +155,7 @@ describe('useScrollAnimation', () => {
       const mockElement = document.createElement('div');
 
       act(() => {
-        (result.current.ref as React.MutableRefObject<HTMLElement>).current = mockElement;
+        (result.current.ref as React.RefCallback<HTMLElement>)(mockElement);
       });
 
       // Act
@@ -167,7 +174,7 @@ describe('useScrollAnimation', () => {
       const mockElement = document.createElement('div');
 
       act(() => {
-        (result.current.ref as React.MutableRefObject<HTMLElement>).current = mockElement;
+        (result.current.ref as React.RefCallback<HTMLElement>)(mockElement);
       });
 
       // Act - 먼저 보이게 함
@@ -193,7 +200,7 @@ describe('useScrollAnimation', () => {
       const mockElement = document.createElement('div');
 
       act(() => {
-        (result.current.ref as React.MutableRefObject<HTMLElement>).current = mockElement;
+        (result.current.ref as React.RefCallback<HTMLElement>)(mockElement);
       });
 
       // Act - 먼저 보이게 함
@@ -221,7 +228,7 @@ describe('useScrollAnimation', () => {
       const mockElement = document.createElement('div');
 
       act(() => {
-        (result.current.ref as React.MutableRefObject<HTMLElement>).current = mockElement;
+        (result.current.ref as React.RefCallback<HTMLElement>)(mockElement);
       });
 
       // Act - intersection 트리거
@@ -249,7 +256,7 @@ describe('useScrollAnimation', () => {
       const mockElement = document.createElement('div');
 
       act(() => {
-        (result.current.ref as React.MutableRefObject<HTMLElement>).current = mockElement;
+        (result.current.ref as React.RefCallback<HTMLElement>)(mockElement);
       });
 
       // Act - intersection 트리거
@@ -284,7 +291,7 @@ describe('useScrollAnimation', () => {
       const mockElement = document.createElement('div');
 
       act(() => {
-        (result.current.ref as React.MutableRefObject<HTMLElement>).current = mockElement;
+        (result.current.ref as React.RefCallback<HTMLElement>)(mockElement);
       });
 
       act(() => {
@@ -309,7 +316,7 @@ describe('useScrollAnimation', () => {
       const { result } = renderHook(() => useScrollAnimation({ threshold: 0.5 }));
 
       act(() => {
-        (result.current.ref as React.MutableRefObject<HTMLElement>).current = mockElement;
+        (result.current.ref as React.RefCallback<HTMLElement>)(mockElement);
       });
 
       // Assert
@@ -327,7 +334,7 @@ describe('useScrollAnimation', () => {
       const { result } = renderHook(() => useScrollAnimation({ rootMargin: '100px' }));
 
       act(() => {
-        (result.current.ref as React.MutableRefObject<HTMLElement>).current = mockElement;
+        (result.current.ref as React.RefCallback<HTMLElement>)(mockElement);
       });
 
       // Assert
@@ -458,29 +465,35 @@ describe('useScrollProgress', () => {
 
 describe('useDirectionalAnimation', () => {
   let mockIntersectionObserverCallback: IntersectionObserverCallback | null = null;
+  let IntersectionObserverMock: any;
 
   beforeEach(() => {
     vi.useFakeTimers();
     mockIntersectionObserverCallback = null;
 
-    global.IntersectionObserver = vi.fn((callback, options) => {
+    IntersectionObserverMock = vi.fn(function (
+      this: any,
+      callback: IntersectionObserverCallback,
+      options?: IntersectionObserverInit
+    ) {
       mockIntersectionObserverCallback = callback;
-      return {
-        observe: vi.fn(),
-        unobserve: vi.fn(),
-        disconnect: vi.fn(),
-        takeRecords: vi.fn(() => []),
-        root: null,
-        rootMargin: options?.rootMargin || '',
-        thresholds: Array.isArray(options?.threshold)
-          ? options.threshold
-          : [options?.threshold || 0],
-      };
-    }) as any;
+      this.observe = vi.fn();
+      this.unobserve = vi.fn();
+      this.disconnect = vi.fn();
+      this.takeRecords = vi.fn(() => []);
+      this.root = null;
+      this.rootMargin = options?.rootMargin || '';
+      this.thresholds = Array.isArray(options?.threshold)
+        ? options.threshold
+        : [options?.threshold || 0];
+      return this;
+    });
+
+    vi.stubGlobal('IntersectionObserver', IntersectionObserverMock);
   });
 
   afterEach(() => {
-    vi.restoreAllMocks();
+    vi.unstubAllGlobals();
     vi.useRealTimers();
     mockIntersectionObserverCallback = null;
   });
@@ -544,7 +557,7 @@ describe('useDirectionalAnimation', () => {
       const mockElement = document.createElement('div');
 
       act(() => {
-        (result.current.ref as React.MutableRefObject<HTMLElement>).current = mockElement;
+        (result.current.ref as React.RefCallback<HTMLElement>)(mockElement);
       });
 
       // Act

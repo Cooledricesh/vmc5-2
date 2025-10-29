@@ -38,7 +38,7 @@ describe('Analysis Detail Routes', () => {
   let app: Hono<AppEnv>;
   let mockSupabase: any;
   const mockUserId = 'test-user-id';
-  const mockAnalysisId = 'analysis-id-123';
+  const mockAnalysisId = '550e8400-e29b-41d4-a716-446655440000'; // Valid UUID
   const mockedGetSupabase = vi.mocked(getSupabase);
   const mockedGetContextUserId = vi.mocked(getContextUserId);
   const mockedGetAuthUserId = vi.mocked(getAuthUserId);
@@ -314,7 +314,8 @@ describe('Analysis Detail Routes', () => {
 
       registerAnalysisDetailRoutes(unauthApp);
       mockedGetSupabase.mockReturnValue(mockSupabase);
-      mockedGetContextUserId.mockReturnValue(null);
+      // Mock getUserId to return null for unauthenticated user
+      mockedGetAuthUserId.mockReturnValue(null);
 
       const res = await unauthApp.request(`/analyses/${mockAnalysisId}`, {
         method: 'GET',
@@ -326,7 +327,7 @@ describe('Analysis Detail Routes', () => {
       expect(body.error.code).toBe(analysisDetailErrorCodes.unauthorized);
 
       // Restore mock
-      mockedGetContextUserId.mockReturnValue(mockUserId);
+      mockedGetAuthUserId.mockReturnValue(mockUserId);
     });
 
     it('should handle database error', async () => {
@@ -424,7 +425,8 @@ describe('Analysis Detail Routes', () => {
 
       registerAnalysisDetailRoutes(unauthApp);
       mockedGetSupabase.mockReturnValue(mockSupabase);
-      mockedGetContextUserId.mockReturnValue(null);
+      // Mock getUserId to return null for unauthenticated user
+      mockedGetAuthUserId.mockReturnValue(null);
 
       const res = await unauthApp.request(`/analyses/${mockAnalysisId}`, {
         method: 'DELETE',
@@ -436,7 +438,7 @@ describe('Analysis Detail Routes', () => {
       expect(body.error.code).toBe(analysisDetailErrorCodes.unauthorized);
 
       // Restore mock
-      mockedGetContextUserId.mockReturnValue(mockUserId);
+      mockedGetAuthUserId.mockReturnValue(mockUserId);
     });
 
     it('should handle database error during deletion', async () => {
@@ -625,7 +627,8 @@ describe('Analysis Detail Routes', () => {
 
       registerAnalysisDetailRoutes(unauthApp);
       mockedGetSupabase.mockReturnValue(mockSupabase);
-      mockedGetContextUserId.mockReturnValue(null);
+      // Mock getUserId to return null for unauthenticated user
+      mockedGetAuthUserId.mockReturnValue(null);
 
       const res = await unauthApp.request('/analyses/reanalyze', {
         method: 'POST',
@@ -641,7 +644,7 @@ describe('Analysis Detail Routes', () => {
       expect(body.error.code).toBe(analysisDetailErrorCodes.unauthorized);
 
       // Restore mock
-      mockedGetContextUserId.mockReturnValue(mockUserId);
+      mockedGetAuthUserId.mockReturnValue(mockUserId);
     });
 
     it('should handle user fetch error', async () => {
