@@ -38,10 +38,16 @@ describe('dashboardActions 통합 테스트', () => {
         },
       };
 
+      // 실제 서버 응답 구조: { ok: true, data: {...} }
+      const serverResponse = {
+        ok: true,
+        data: mockSummaryData,
+      };
+
       mockAxios.onGet('/api/dashboard/summary').reply((config) => {
         // Authorization 헤더가 포함되어 있는지 확인
         expect(config.headers?.Authorization).toBe('Bearer test-clerk-token');
-        return [200, mockSummaryData];
+        return [200, serverResponse];
       });
 
       // Act
@@ -82,9 +88,15 @@ describe('dashboardActions 통합 테스트', () => {
         this_week_count: 2,
       };
 
+      // 실제 서버 응답 구조: { ok: true, data: {...} }
+      const serverResponse = {
+        ok: true,
+        data: mockStatsData,
+      };
+
       mockAxios.onGet('/api/dashboard/stats').reply((config) => {
         expect(config.headers?.Authorization).toBe('Bearer test-clerk-token');
-        return [200, mockStatsData];
+        return [200, serverResponse];
       });
 
       // Act
@@ -146,10 +158,16 @@ describe('dashboardActions 통합 테스트', () => {
         pagination: { current_page: 1, per_page: 10, total_count: 2, total_pages: 1 },
       };
 
+      // 실제 서버 응답 구조: { ok: true, data: {...} }
+      const serverResponse = {
+        ok: true,
+        data: mockAnalysesData,
+      };
+
       mockAxios.onGet('/api/analyses').reply((config) => {
         expect(config.headers?.Authorization).toBe('Bearer test-clerk-token');
         expect(config.params).toEqual(params);
-        return [200, mockAnalysesData];
+        return [200, serverResponse];
       });
 
       // Act
@@ -182,7 +200,13 @@ describe('dashboardActions 통합 테스트', () => {
         pagination: { current_page: 1, per_page: 10, total_count: 1, total_pages: 1 },
       };
 
-      mockAxios.onGet('/api/analyses').reply(200, mockAnalysesData);
+      // 실제 서버 응답 구조: { ok: true, data: {...} }
+      const serverResponse = {
+        ok: true,
+        data: mockAnalysesData,
+      };
+
+      mockAxios.onGet('/api/analyses').reply(200, serverResponse);
 
       // Act
       await fetchAnalyses(mockDispatch, params);
@@ -210,7 +234,13 @@ describe('dashboardActions 통합 테스트', () => {
         pagination: { current_page: 1, per_page: 10, total_count: 1, total_pages: 1 },
       };
 
-      mockAxios.onGet('/api/analyses').reply(200, mockAnalysesData);
+      // 실제 서버 응답 구조: { ok: true, data: {...} }
+      const serverResponse = {
+        ok: true,
+        data: mockAnalysesData,
+      };
+
+      mockAxios.onGet('/api/analyses').reply(200, serverResponse);
 
       // Act
       await fetchAnalyses(mockDispatch, params);

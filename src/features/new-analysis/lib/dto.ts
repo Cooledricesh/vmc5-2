@@ -7,3 +7,8 @@ export type {
   NewAnalysisResponse,
   AnalysisStatusResponse,
 } from '../backend/schema';
+
+/**
+ * API 함수 재노출
+ */
+export { createAnalysis } from './api';

@@ -3,6 +3,7 @@ import type {
   DashboardStatsResponse,
   AnalysisItem,
   Pagination,
+  AnalysesListResponse,
 } from '../lib/dto';
 
 // 사용자 정보 상태
@@ -72,7 +73,7 @@ export type DashboardAction =
 
   // 분석 목록
   | { type: 'FETCH_ANALYSES_START' }
-  | { type: 'FETCH_ANALYSES_SUCCESS'; payload: { analyses: AnalysisItem[]; pagination: Pagination } }
+  | { type: 'FETCH_ANALYSES_SUCCESS'; payload: AnalysesListResponse }
   | { type: 'FETCH_ANALYSES_ERROR'; payload: { error: string } }
 
   // 필터

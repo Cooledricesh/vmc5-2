@@ -70,7 +70,7 @@ export type SubmitAnalysisSuccessAction = {
   type: 'SUBMIT_ANALYSIS_SUCCESS';
   payload: {
     analysis_id: string;
-    status: 'completed' | 'processing';
+    status: 'completed' | 'processing' | 'failed';
     remaining_count: number;
   };
 };

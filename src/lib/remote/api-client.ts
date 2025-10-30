@@ -1,6 +1,28 @@
 import axios, { isAxiosError, type InternalAxiosRequestConfig } from "axios";
 
 /**
+ * API 성공 응답의 타입
+ * 서버의 respond() 함수가 반환하는 성공 응답 구조
+ */
+export type ApiSuccessResponse<T> = {
+  ok: true;
+  data: T;
+};
+
+/**
+ * API 에러 응답의 타입
+ * 서버의 respond() 함수가 반환하는 에러 응답 구조
+ */
+export type ApiErrorResponse = {
+  ok: false;
+  error: {
+    code: string;
+    message: string;
+    details?: unknown;
+  };
+};
+
+/**
  * API 클라이언트 인스턴스
  * 모든 HTTP 요청은 이 클라이언트를 통해 이루어집니다.
  */

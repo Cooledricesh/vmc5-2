@@ -11,6 +11,8 @@ import { Label } from '@/components/ui/label';
 import { RadioGroup, RadioGroupItem } from '@/components/ui/radio-group';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { useNewAnalysisContext } from '../context/NewAnalysisContext';
+import { createAnalysis } from '../lib/dto';
+import { extractApiErrorMessage } from '@/lib/remote/api-client';
 
 // 폼 스키마 정의
 const analysisFormSchema = z.object({
@@ -56,24 +58,13 @@ export function AnalysisForm() {
     dispatch({ type: 'SUBMIT_ANALYSIS_START' });
 
     try {
-      // API 호출
-      const response = await fetch('/api/analyses/new', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({
-          subject_name: data.subject_name,
-          birth_date: data.birth_date,
-          birth_time: data.birth_time || null,
-          gender: data.gender,
-        }),
+      // API 호출 - apiClient를 사용하여 자동으로 Authorization 헤더 추가
+      const result = await createAnalysis({
+        subject_name: data.subject_name,
+        birth_date: data.birth_date,
+        birth_time: data.birth_time || null,
+        gender: data.gender,
       });
-
-      if (!response.ok) {
-        const errorData = await response.json();
-        throw new Error(errorData.error || '분석 생성에 실패했습니다');
-      }
-
-      const result = await response.json();
 
       dispatch({
         type: 'SUBMIT_ANALYSIS_SUCCESS',
@@ -88,12 +79,14 @@ export function AnalysisForm() {
       router.push(`/analysis/${result.analysis_id}`);
     } catch (error) {
       console.error('Failed to create analysis:', error);
+      const errorMessage = extractApiErrorMessage(error, '분석 생성에 실패했습니다');
+
       dispatch({
         type: 'SUBMIT_ANALYSIS_FAILURE',
         payload: {
           error: {
             code: 'ANALYSIS_CREATE_ERROR',
-            message: error instanceof Error ? error.message : '알 수 없는 오류가 발생했습니다',
+            message: errorMessage,
             is_recoverable: true,
           },
         },

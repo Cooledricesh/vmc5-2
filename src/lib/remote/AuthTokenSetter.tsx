@@ -37,7 +37,7 @@ export function AuthTokenSetter(): null {
 
     // getToken 함수를 api-client에 등록
     // 모든 API 요청 시 자동으로 Clerk 토큰을 헤더에 추가
-    setAuthTokenGetter(() => getToken());
+    setAuthTokenGetter(getToken);
 
     console.log('[AuthTokenSetter] Token getter registered successfully');
 
