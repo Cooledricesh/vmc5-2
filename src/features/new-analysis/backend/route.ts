@@ -83,7 +83,7 @@ export const registerNewAnalysisRoutes = (app: Hono<AppEnv>) => {
       const { data: user, error } = await supabase
         .from('users')
         .select('subscription_tier')
-        .eq('id', userId)
+        .eq('clerk_user_id', userId)
         .single();
 
       if (error || !user) {

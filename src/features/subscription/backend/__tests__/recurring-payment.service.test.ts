@@ -97,8 +97,10 @@ describe('정기결제 자동 처리 서비스', () => {
       const result = await getPaymentTargetsService(mockSupabaseClient);
 
       // Assert
-      expect(result.success).toBe(true);
-      expect(result.data).toHaveLength(2);
+      expect(result.ok).toBe(true);
+      if (result.ok) {
+        expect(result.data).toHaveLength(2);
+      }
     });
 
     it('결제 대상이 없으면 빈 배열을 반환해야 한다', async () => {
@@ -116,8 +118,10 @@ describe('정기결제 자동 처리 서비스', () => {
       const result = await getPaymentTargetsService(mockSupabaseClient);
 
       // Assert
-      expect(result.success).toBe(true);
-      expect(result.data).toEqual([]);
+      expect(result.ok).toBe(true);
+      if (result.ok) {
+        expect(result.data).toEqual([]);
+      }
     });
 
     it('데이터베이스 조회 실패 시 에러를 반환해야 한다', async () => {
@@ -135,8 +139,10 @@ describe('정기결제 자동 처리 서비스', () => {
       const result = await getPaymentTargetsService(mockSupabaseClient);
 
       // Assert
-      expect(result.success).toBe(false);
-      expect(result.statusCode).toBe(500);
+      expect(result.ok).toBe(false);
+      if (!result.ok) {
+        expect(result.status).toBe(500);
+      }
     });
   });
 
@@ -177,14 +183,16 @@ describe('정기결제 자동 처리 서비스', () => {
       );
 
       // Assert
-      expect(result.success).toBe(true);
-      expect(result.data).toEqual({
-        subscription_id: 'sub-1',
-        user_id: 'user-1',
-        payment_key: 'pay-key-1',
-        status: 'success',
-        amount: 9900,
-      });
+      expect(result.ok).toBe(true);
+      if (result.ok) {
+        expect(result.data).toEqual({
+          subscription_id: 'sub-1',
+          user_id: 'user-1',
+          payment_key: 'pay-key-1',
+          status: 'success',
+          amount: 9900,
+        });
+      }
       expect(mockTossClient.executePayment).toHaveBeenCalledWith({
         billingKey: 'billing-key-1',
         customerKey: 'clerk-user-1',
@@ -215,9 +223,11 @@ describe('정기결제 자동 처리 서비스', () => {
       );
 
       // Assert
-      expect(result.success).toBe(false);
-      expect(result.statusCode).toBe(400);
-      expect(result.errorCode).toBe('PAYMENT_FAILED');
+      expect(result.ok).toBe(false);
+      if (!result.ok) {
+        expect(result.status).toBe(400);
+        expect(result.error.code).toBe('PAYMENT_SERVICE_ERROR');
+      }
     });
   });
 
@@ -244,7 +254,7 @@ describe('정기결제 자동 처리 서비스', () => {
       const result = await handlePaymentSuccessService(mockSupabaseClient, paymentData);
 
       // Assert
-      expect(result.success).toBe(true);
+      expect(result.ok).toBe(true);
     });
 
     it('next_payment_date를 1개월 후로 업데이트해야 한다', async () => {
@@ -347,8 +357,10 @@ describe('정기결제 자동 처리 서비스', () => {
       const result = await handlePaymentFailureService(mockSupabaseClient, failureData);
 
       // Assert
-      expect(result.success).toBe(true);
-      expect(result.data.retry_count).toBe(1);
+      expect(result.ok).toBe(true);
+      if (result.ok) {
+        expect(result.data.retry_count).toBe(1);
+      }
     });
 
     it('retry_count가 2회 미만일 때는 재시도 가능 상태로 반환해야 한다', async () => {
@@ -374,9 +386,11 @@ describe('정기결제 자동 처리 서비스', () => {
       const result = await handlePaymentFailureService(mockSupabaseClient, failureData);
 
       // Assert
-      expect(result.success).toBe(true);
-      expect(result.data.retry_count).toBe(2);
-      expect(result.data.should_suspend).toBe(false);
+      expect(result.ok).toBe(true);
+      if (result.ok) {
+        expect(result.data.retry_count).toBe(2);
+        expect(result.data.should_suspend).toBe(false);
+      }
     });
 
     it('retry_count가 3회 이상일 때는 구독 정지 플래그를 반환해야 한다', async () => {
@@ -402,9 +416,11 @@ describe('정기결제 자동 처리 서비스', () => {
       const result = await handlePaymentFailureService(mockSupabaseClient, failureData);
 
       // Assert
-      expect(result.success).toBe(true);
-      expect(result.data.retry_count).toBe(3);
-      expect(result.data.should_suspend).toBe(true);
+      expect(result.ok).toBe(true);
+      if (result.ok) {
+        expect(result.data.retry_count).toBe(3);
+        expect(result.data.should_suspend).toBe(true);
+      }
     });
   });
 
@@ -433,7 +449,7 @@ describe('정기결제 자동 처리 서비스', () => {
       );
 
       // Assert
-      expect(result.success).toBe(true);
+      expect(result.ok).toBe(true);
       expect(mockTossClient.deleteBillingKey).toHaveBeenCalledWith(billingKey);
     });
 
@@ -546,7 +562,7 @@ describe('정기결제 자동 처리 서비스', () => {
       );
 
       // Assert
-      expect(result.success).toBe(true);
+      expect(result.ok).toBe(true);
     });
   });
 });

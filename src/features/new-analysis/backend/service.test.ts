@@ -335,18 +335,34 @@ describe('New Analysis Service', () => {
 
     it('should return processing status', async () => {
       // Arrange
-      mockSupabase.from = vi.fn(() => ({
-        select: vi.fn(() => ({
-          eq: vi.fn(() => ({
+      mockSupabase.from = vi.fn((table: string) => {
+        if (table === 'users') {
+          return {
+            select: vi.fn(() => ({
+              eq: vi.fn(() => ({
+                maybeSingle: vi.fn(() =>
+                  Promise.resolve({
+                    data: { id: mockUserId },
+                    error: null,
+                  })
+                ),
+              })),
+            })),
+          };
+        }
+        // table === 'analyses'
+        return {
+          select: vi.fn(() => ({
             eq: vi.fn(() => ({
-              maybeSingle: vi.fn(() =>
-                Promise.resolve({
-                  data: {
-                    id: mockAnalysisId,
-                    status: 'processing',
-                    analysis_result: null,
-                    created_at: '2024-01-01T00:00:00Z',
-                    updated_at: '2024-01-01T00:00:00Z',
+              eq: vi.fn(() => ({
+                maybeSingle: vi.fn(() =>
+                  Promise.resolve({
+                    data: {
+                      id: mockAnalysisId,
+                      status: 'processing',
+                      analysis_result: null,
+                      created_at: '2024-01-01T00:00:00Z',
+                      updated_at: '2024-01-01T00:00:00Z',
                   },
                   error: null,
                 })

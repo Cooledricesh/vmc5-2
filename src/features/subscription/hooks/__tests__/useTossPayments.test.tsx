@@ -54,12 +54,11 @@ describe('useTossPayments', () => {
 
     await waitFor(() => {
       expect(result.current.error).toBeDefined();
+      expect(result.current.isLoading).toBe(false);
+      expect(result.current.isLoaded).toBe(false);
+      expect(result.current.tossPayments).toBeNull();
+      expect(result.current.error?.message).toBe('Failed to load SDK');
     });
-
-    expect(result.current.isLoading).toBe(false);
-    expect(result.current.isLoaded).toBe(false);
-    expect(result.current.tossPayments).toBeNull();
-    expect(result.current.error?.message).toBe('Failed to load SDK');
   });
 
   it('클라이언트 키가 없을 경우 에러를 반환해야 함', async () => {

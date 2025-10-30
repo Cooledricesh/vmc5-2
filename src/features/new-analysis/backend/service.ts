@@ -4,6 +4,7 @@ import {
   failure,
   type HandlerResult,
 } from '@/backend/http/response';
+import { getUserIdByClerkId } from '@/backend/utils/user-helper';
 import { getGeminiClient, getGeminiProClient } from '@/lib/external/gemini-client';
 import type {
   NewAnalysisRequest,
@@ -18,6 +19,7 @@ import {
 
 /**
  * 사용자 분석 횟수 조회
+ * @param userId - Clerk User ID (e.g., "user_34k7JqEd8il5046H7aeiCZ1qA9G")
  */
 export async function getUserAnalysisCount(
   client: SupabaseClient,
@@ -28,7 +30,7 @@ export async function getUserAnalysisCount(
   const { data, error } = await client
     .from('users')
     .select('subscription_tier, free_analysis_count, monthly_analysis_count')
-    .eq('id', userId)
+    .eq('clerk_user_id', userId)
     .maybeSingle();
 
   if (error) {
@@ -59,15 +61,17 @@ export async function getUserAnalysisCount(
 
 /**
  * 진행 중인 분석 확인
+ * @param client - Supabase 클라이언트
+ * @param internalUserId - 내부 UUID (users.id)
  */
 export async function checkDuplicateAnalysis(
   client: SupabaseClient,
-  userId: string,
+  internalUserId: string,
 ): Promise<string | null> {
   const { data } = await client
     .from('analyses')
     .select('id')
-    .eq('user_id', userId)
+    .eq('user_id', internalUserId)
     .eq('status', 'processing')
     .maybeSingle();
 
@@ -76,17 +80,18 @@ export async function checkDuplicateAnalysis(
 
 /**
  * 분석 레코드 생성
+ * @param internalUserId - 내부 UUID (users.id)
  */
 async function createAnalysisRecord(
   client: SupabaseClient,
-  userId: string,
+  internalUserId: string,
   request: NewAnalysisRequest,
   aiModel: string,
 ): Promise<HandlerResult<string, NewAnalysisServiceError, unknown>> {
   const { data, error } = await client
     .from('analyses')
     .insert({
-      user_id: userId,
+      user_id: internalUserId,
       subject_name: request.subject_name,
       birth_date: request.birth_date,
       birth_time: request.birth_time || null,
@@ -184,10 +189,11 @@ async function updateAnalysisResult(
 
 /**
  * 분석 횟수 차감
+ * @param internalUserId - 내부 UUID (users.id)
  */
 async function decrementAnalysisCount(
   client: SupabaseClient,
-  userId: string,
+  internalUserId: string,
   subscriptionTier: 'free' | 'pro',
 ): Promise<HandlerResult<number, NewAnalysisServiceError, unknown>> {
   const column =
@@ -198,7 +204,7 @@ async function decrementAnalysisCount(
   const { data, error } = await client
     .from('users')
     .select(column)
-    .eq('id', userId)
+    .eq('id', internalUserId)
     .single();
 
   if (error || !data) {
@@ -211,7 +217,7 @@ async function decrementAnalysisCount(
   const { error: updateError } = await client
     .from('users')
     .update({ [column]: newCount })
-    .eq('id', userId);
+    .eq('id', internalUserId);
 
   if (updateError) {
     return failure(
@@ -226,10 +232,11 @@ async function decrementAnalysisCount(
 
 /**
  * 분석 횟수 복구 (실패 시)
+ * @param internalUserId - 내부 UUID (users.id)
  */
 export async function refundAnalysisCount(
   client: SupabaseClient,
-  userId: string,
+  internalUserId: string,
   subscriptionTier: 'free' | 'pro',
 ): Promise<void> {
   const column =
@@ -240,7 +247,7 @@ export async function refundAnalysisCount(
   const { data } = await client
     .from('users')
     .select(column)
-    .eq('id', userId)
+    .eq('id', internalUserId)
     .single();
 
   if (data) {
@@ -251,12 +258,13 @@ export async function refundAnalysisCount(
     await client
       .from('users')
       .update({ [column]: newCount })
-      .eq('id', userId);
+      .eq('id', internalUserId);
   }
 }
 
 /**
  * 통합 함수: 새 분석 생성
+ * @param userId - Clerk User ID (e.g., "user_34k7JqEd8il5046H7aeiCZ1qA9G")
  */
 export async function createNewAnalysis(
   client: SupabaseClient,
@@ -267,6 +275,11 @@ export async function createNewAnalysis(
 ): Promise<
   HandlerResult<NewAnalysisResponse, NewAnalysisServiceError, unknown>
 > {
+  // 0. Clerk ID로 내부 UUID 조회
+  const userIdResult = await getUserIdByClerkId(client, userId, newAnalysisErrorCodes.unauthorized);
+  if (!userIdResult.ok) return userIdResult as any;
+  const internalUserId = userIdResult.data;
+
   // 1. 횟수 확인
   const countResult = await getUserAnalysisCount(client, userId);
   if (!countResult.ok) return countResult;
@@ -279,8 +292,8 @@ export async function createNewAnalysis(
     );
   }
 
-  // 2. 중복 분석 확인
-  const duplicateId = await checkDuplicateAnalysis(client, userId);
+  // 2. 중복 분석 확인 (내부 UUID 사용)
+  const duplicateId = await checkDuplicateAnalysis(client, internalUserId);
   if (duplicateId) {
     return failure(
       409,
@@ -294,10 +307,10 @@ export async function createNewAnalysis(
   const aiModel =
     subscriptionTier === 'free' ? 'gemini-2.0-flash' : 'gemini-2.0-pro';
 
-  // 4. 분석 레코드 생성
+  // 4. 분석 레코드 생성 (내부 UUID 사용)
   const recordResult = await createAnalysisRecord(
     client,
-    userId,
+    internalUserId,
     request,
     aiModel,
   );
@@ -305,10 +318,10 @@ export async function createNewAnalysis(
 
   const analysisId = recordResult.data;
 
-  // 5. 횟수 차감 (먼저 차감)
+  // 5. 횟수 차감 (내부 UUID 사용)
   const decrementResult = await decrementAnalysisCount(
     client,
-    userId,
+    internalUserId,
     subscriptionTier,
   );
   if (!decrementResult.ok) {
@@ -327,8 +340,8 @@ export async function createNewAnalysis(
   );
 
   if (!analysisResult.ok) {
-    // 실패 시 횟수 복구
-    await refundAnalysisCount(client, userId, subscriptionTier);
+    // 실패 시 횟수 복구 (내부 UUID 사용)
+    await refundAnalysisCount(client, internalUserId, subscriptionTier);
     return analysisResult as any;
   }
 
@@ -340,8 +353,8 @@ export async function createNewAnalysis(
   );
 
   if (!updateResult.ok) {
-    // 저장 실패 시 횟수 복구
-    await refundAnalysisCount(client, userId, subscriptionTier);
+    // 저장 실패 시 횟수 복구 (내부 UUID 사용)
+    await refundAnalysisCount(client, internalUserId, subscriptionTier);
     return updateResult as any;
   }
 
@@ -354,6 +367,7 @@ export async function createNewAnalysis(
 
 /**
  * 분석 상태 조회 (폴링용)
+ * @param userId - Clerk User ID (e.g., "user_34k7JqEd8il5046H7aeiCZ1qA9G")
  */
 export async function getAnalysisStatus(
   client: SupabaseClient,
@@ -362,11 +376,16 @@ export async function getAnalysisStatus(
 ): Promise<
   HandlerResult<AnalysisStatusResponse, NewAnalysisServiceError, unknown>
 > {
+  // Clerk ID로 내부 UUID 조회
+  const userIdResult = await getUserIdByClerkId(client, userId, newAnalysisErrorCodes.unauthorized);
+  if (!userIdResult.ok) return userIdResult as any;
+  const internalUserId = userIdResult.data;
+
   const { data, error } = await client
     .from('analyses')
     .select('id, status, analysis_result, created_at, updated_at')
     .eq('id', analysisId)
-    .eq('user_id', userId)
+    .eq('user_id', internalUserId)
     .maybeSingle();
 
   if (error) {
