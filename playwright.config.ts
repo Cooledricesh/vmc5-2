@@ -6,9 +6,8 @@ export default defineConfig({
   retries: process.env.CI ? 2 : 0,
   reporter: 'html',
   use: {
-    // 로컬 개발: http://localhost:3000
-    // 프로덕션 (OAuth 테스트용): https://vmc5-2.vercel.app
-    baseURL: process.env.E2E_BASE_URL || 'http://localhost:3000',
+    // 프로덕션 (OAuth 인증 상태 사용)
+    baseURL: 'https://vmc5-2.vercel.app',
     trace: 'on-first-retry',
   },
   projects: [

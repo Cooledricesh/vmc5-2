@@ -15,11 +15,26 @@ let mockAnalysisData = {
   data: {
     id: 'test-id',
     analysis_result: {
-      interpretation: {
-        personality: '성격 분석 내용입니다.',
-        wealth: '재운 분석 내용입니다.',
-        health: '건강운 내용입니다.',
-        love: '연애운 내용입니다.',
+      personality: {
+        strengths: ['강점1', '강점2'],
+        weaknesses: ['약점1', '약점2'],
+        characteristics: '주요 특징 내용입니다.',
+      },
+      career_wealth: {
+        suitable_careers: ['직업1', '직업2'],
+        wealth_fortune: '재물운 내용입니다.',
+        career_advice: '경력 조언 내용입니다.',
+      },
+      health: {
+        vulnerable_areas: '주의 부위 내용입니다.',
+        health_advice: '건강 조언 내용입니다.',
+        favorable_elements: '유리한 오행 내용입니다.',
+      },
+      relationships: {
+        marriage_compatibility: '결혼/연애운 내용입니다.',
+        compatible_types: ['잘 맞는 유형1', '잘 맞는 유형2'],
+        challenging_types: ['주의할 유형1', '주의할 유형2'],
+        relationship_advice: '관계 조언 내용입니다.',
       },
     },
   },
@@ -46,11 +61,26 @@ describe('InterpretationTabs', () => {
       data: {
         id: 'test-id',
         analysis_result: {
-          interpretation: {
-            personality: '성격 분석 내용입니다.',
-            wealth: '재운 분석 내용입니다.',
-            health: '건강운 내용입니다.',
-            love: '연애운 내용입니다.',
+          personality: {
+            strengths: ['강점1', '강점2'],
+            weaknesses: ['약점1', '약점2'],
+            characteristics: '주요 특징 내용입니다.',
+          },
+          career_wealth: {
+            suitable_careers: ['직업1', '직업2'],
+            wealth_fortune: '재물운 내용입니다.',
+            career_advice: '경력 조언 내용입니다.',
+          },
+          health: {
+            vulnerable_areas: '주의 부위 내용입니다.',
+            health_advice: '건강 조언 내용입니다.',
+            favorable_elements: '유리한 오행 내용입니다.',
+          },
+          relationships: {
+            marriage_compatibility: '결혼/연애운 내용입니다.',
+            compatible_types: ['잘 맞는 유형1', '잘 맞는 유형2'],
+            challenging_types: ['주의할 유형1', '주의할 유형2'],
+            relationship_advice: '관계 조언 내용입니다.',
           },
         },
       } as any,
@@ -75,7 +105,8 @@ describe('InterpretationTabs', () => {
 
     it('should render active tab content', () => {
       render(<InterpretationTabs />);
-      expect(screen.getByText('성격 분석 내용입니다.')).toBeInTheDocument();
+      expect(screen.getByText(/강점1/)).toBeInTheDocument();
+      expect(screen.getByText(/주요 특징 내용입니다/)).toBeInTheDocument();
     });
   });
 
@@ -92,15 +123,10 @@ describe('InterpretationTabs', () => {
 
     it('should render wealth content when wealth tab is active', () => {
       mockActiveTab = 'wealth';
-      mockAnalysisData.data!.analysis_result!.interpretation = {
-        personality: '성격 분석 내용입니다.',
-        wealth: '재운 분석 내용입니다.',
-        health: '건강운 내용입니다.',
-        love: '연애운 내용입니다.',
-      } as any;
 
       render(<InterpretationTabs />);
-      expect(screen.getByText('재운 분석 내용입니다.')).toBeInTheDocument();
+      expect(screen.getByText(/직업1/)).toBeInTheDocument();
+      expect(screen.getByText(/재물운 내용입니다/)).toBeInTheDocument();
     });
   });
 
