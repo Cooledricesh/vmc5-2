@@ -84,29 +84,26 @@ export async function logout(page: Page): Promise<void> {
 /**
  * 인증 상태 확인 및 필요시 로그인
  *
+ * storageState를 사용하는 환경에서는 이미 인증되어 있으므로
+ * 단순히 대시보드로 이동하여 인증 상태를 확인합니다.
+ *
  * @param page - Playwright Page 객체
- * @param email - 로그인할 이메일 주소
+ * @param email - 로그인할 이메일 주소 (storageState 사용 시 무시됨)
  */
 export async function ensureAuthenticated(
   page: Page,
   email: string
 ): Promise<void> {
-  // 대시보드 접근 시도
+  // storageState로 이미 인증된 상태이므로 대시보드로 이동만 함
   await page.goto('/dashboard');
   await page.waitForLoadState('networkidle');
 
-  // 로그인 페이지로 리다이렉트되었는지 확인
+  // 인증되지 않은 경우 에러
   const currentUrl = page.url();
-
   if (currentUrl.includes('/sign-in') || currentUrl.includes('/sign-up')) {
-    // 로그인 필요
-    await loginWithGoogle(page, { email, waitForDashboard: true });
-  } else if (currentUrl.includes('/dashboard')) {
-    // 이미 로그인됨
-    return;
-  } else {
-    // 예상치 못한 페이지
-    throw new Error(`Unexpected page: ${currentUrl}`);
+    throw new Error(
+      'Authentication failed - ensure storageState is properly configured'
+    );
   }
 }
 

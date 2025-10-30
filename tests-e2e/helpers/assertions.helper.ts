@@ -39,7 +39,7 @@ export async function assertDashboardLoaded(page: Page): Promise<void> {
  */
 export async function assertAnalysisFormVisible(page: Page): Promise<void> {
   // 1. URL 확인
-  expect(page.url()).toContain('/new-analysis');
+  expect(page.url()).toContain('/analysis/new');
 
   // 2. 폼 요소 존재
   await expect(page.locator('form').first()).toBeVisible({ timeout: 5000 });

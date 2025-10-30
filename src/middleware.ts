@@ -7,7 +7,7 @@ const isPublicRoute = createRouteMatcher([
   "/sign-in(.*)",
   "/sign-up(.*)",
   "/api/webhooks(.*)",
-  "/api/[[...hono]](.*)",  // Hono API 라우트
+  // Hono API 라우트는 제거 - 백엔드에서 개별적으로 인증 처리
 ]);
 
 export default clerkMiddleware(async (auth, req) => {

@@ -23,7 +23,7 @@ const analysisFormSchema = z.object({
   birth_date: z.string().refine((date) => {
     const parsed = new Date(date);
     return parsed < new Date() && !isNaN(parsed.getTime());
-  }, '유효한 생년월일을 입력해주세요'),
+  }, '유효한 날짜를 입력해주세요. 생년월일은 과거 날짜여야 합니다'),
   birth_time: z.string().optional(),
   gender: z.enum(['male', 'female'], {
     required_error: '성별을 선택해주세요',

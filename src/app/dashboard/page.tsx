@@ -15,6 +15,8 @@ export default function DashboardPage({ params }: DashboardPageProps) {
   return (
     <DashboardProvider>
       <div className="container mx-auto px-4 py-8 max-w-7xl">
+        <h1 className="text-3xl font-bold mb-6">대시보드</h1>
+
         {/* 사용자 정보 및 구독 상태 */}
         <DashboardSummarySection />
 

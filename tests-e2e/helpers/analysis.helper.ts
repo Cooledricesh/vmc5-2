@@ -23,7 +23,7 @@ export async function createNewAnalysis(
   data: AnalysisData
 ): Promise<string> {
   // 1. "새 분석하기" 페이지로 이동
-  await page.goto('/new-analysis');
+  await page.goto('/analysis/new');
   await page.waitForLoadState('networkidle');
 
   // 2. 폼이 로드될 때까지 대기
@@ -47,12 +47,10 @@ export async function createNewAnalysis(
     await birthTimeInput.fill(data.birthTime);
   }
 
-  // 6. 성별 선택
-  const genderValue = data.gender === 'male' ? '남' : '여';
-  const genderRadio = page.locator(
-    `input[type="radio"][value="${data.gender}"], input[type="radio"]:has-text("${genderValue}")`
-  ).first();
-  await genderRadio.check();
+  // 6. 성별 선택 (shadcn RadioGroup은 Label을 클릭해야 함)
+  const genderValue = data.gender === 'male' ? '남성' : '여성';
+  const genderLabel = page.locator(`label:has-text("${genderValue}")`).filter({ has: page.locator(`#${data.gender}`) }).first();
+  await genderLabel.click();
 
   // 7. "분석 시작" 버튼 클릭
   const submitButton = page.locator(

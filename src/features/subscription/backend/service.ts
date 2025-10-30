@@ -99,6 +99,8 @@ export async function getSubscriptionByUserId(
 
 /**
  * 빌링키 발급 및 초회 결제 실행 후 구독 생성
+ * @param userId - Clerk User ID (e.g., "user_34k7JqEd8il5046H7aeiCZ1qA9G")
+ * @param clerkUserId - Clerk User ID (중복 파라미터, userId와 동일)
  */
 export async function createSubscriptionWithPayment(
   client: SupabaseClient,
@@ -110,11 +112,18 @@ export async function createSubscriptionWithPayment(
   userName: string,
 ): Promise<HandlerResult<SubscriptionResponse, SubscriptionErrorCode, unknown>> {
   try {
+    // Clerk ID로 내부 UUID 조회
+    const userIdResult = await getUserIdByClerkId(client, userId, subscriptionErrorCodes.unauthorized);
+    if (!userIdResult.ok) {
+      return userIdResult as HandlerResult<SubscriptionResponse, SubscriptionErrorCode, unknown>;
+    }
+    const internalUserId = userIdResult.data;
+
     // 1. 기존 구독 확인
     const { data: existingSub } = await client
       .from('subscriptions')
       .select('id, subscription_status')
-      .eq('user_id', userId)
+      .eq('user_id', internalUserId)
       .maybeSingle();
 
     if (existingSub && existingSub.subscription_status === SUBSCRIPTION_STATUS.ACTIVE) {
@@ -155,7 +164,7 @@ export async function createSubscriptionWithPayment(
     const cardType = card?.cardType || '신용';
 
     // 3. 초회 결제 실행
-    const orderId = `SUB_${userId}_${Date.now()}`;
+    const orderId = `SUB_${internalUserId}_${Date.now()}`;
     let paymentResult;
     try {
       paymentResult = await tossClient.executePayment({
@@ -192,7 +201,7 @@ export async function createSubscriptionWithPayment(
 
     // 4. 트랜잭션: 구독 생성 + 사용자 정보 업데이트 + 결제 내역 저장
     const { data: rpcResult, error: rpcError } = await client.rpc('create_subscription_transaction', {
-      p_user_id: userId,
+      p_user_id: internalUserId,
       p_billing_key: billingKey,
       p_card_last_4digits: cardLast4,
       p_card_type: cardType,
@@ -244,6 +253,7 @@ export async function createSubscriptionWithPayment(
 
 /**
  * 구독 해지 (빌링키 삭제 + DB 업데이트)
+ * @param userId - Clerk User ID (e.g., "user_34k7JqEd8il5046H7aeiCZ1qA9G")
  */
 export async function cancelSubscriptionService(
   client: SupabaseClient,
@@ -253,11 +263,18 @@ export async function cancelSubscriptionService(
   feedback: string | undefined,
 ): Promise<HandlerResult<SubscriptionResponse, SubscriptionErrorCode, unknown>> {
   try {
+    // Clerk ID로 내부 UUID 조회
+    const userIdResult = await getUserIdByClerkId(client, userId, subscriptionErrorCodes.unauthorized);
+    if (!userIdResult.ok) {
+      return userIdResult as HandlerResult<SubscriptionResponse, SubscriptionErrorCode, unknown>;
+    }
+    const internalUserId = userIdResult.data;
+
     // 1. 구독 정보 조회
     const { data: subscription, error: subError } = await client
       .from('subscriptions')
       .select('*')
-      .eq('user_id', userId)
+      .eq('user_id', internalUserId)
       .eq('subscription_status', SUBSCRIPTION_STATUS.ACTIVE)
       .maybeSingle();
 
@@ -306,7 +323,7 @@ export async function cancelSubscriptionService(
     // 4. 해지 사유 저장 (선택사항)
     if (cancellationReason || feedback) {
       const { error: reasonError } = await client.from('subscription_cancellations').insert({
-        user_id: userId,
+        user_id: internalUserId,
         subscription_id: subscription.id,
         cancellation_reason: cancellationReason,
         feedback,
@@ -342,6 +359,8 @@ export async function cancelSubscriptionService(
 
 /**
  * 구독 재활성화
+ * @param userId - Clerk User ID (e.g., "user_34k7JqEd8il5046H7aeiCZ1qA9G")
+ * @param clerkUserId - Clerk User ID (중복 파라미터, userId와 동일)
  */
 export async function reactivateSubscriptionService(
   client: SupabaseClient,
@@ -354,11 +373,18 @@ export async function reactivateSubscriptionService(
   userName?: string,
 ): Promise<HandlerResult<SubscriptionResponse, SubscriptionErrorCode, unknown>> {
   try {
+    // Clerk ID로 내부 UUID 조회
+    const userIdResult = await getUserIdByClerkId(client, userId, subscriptionErrorCodes.unauthorized);
+    if (!userIdResult.ok) {
+      return userIdResult as HandlerResult<SubscriptionResponse, SubscriptionErrorCode, unknown>;
+    }
+    const internalUserId = userIdResult.data;
+
     // 1. 구독 정보 조회
     const { data: subscription, error: subError } = await client
       .from('subscriptions')
       .select('*')
-      .eq('user_id', userId)
+      .eq('user_id', internalUserId)
       .maybeSingle();
 
     if (subError) {
@@ -487,6 +513,8 @@ export async function reactivateSubscriptionService(
 
 /**
  * 결제 카드 변경
+ * @param userId - Clerk User ID (e.g., "user_34k7JqEd8il5046H7aeiCZ1qA9G")
+ * @param clerkUserId - Clerk User ID (중복 파라미터, userId와 동일)
  */
 export async function changePaymentCardService(
   client: SupabaseClient,
@@ -498,11 +526,18 @@ export async function changePaymentCardService(
   userName: string,
 ): Promise<HandlerResult<SubscriptionResponse, SubscriptionErrorCode, unknown>> {
   try {
+    // Clerk ID로 내부 UUID 조회
+    const userIdResult = await getUserIdByClerkId(client, userId, subscriptionErrorCodes.unauthorized);
+    if (!userIdResult.ok) {
+      return userIdResult as HandlerResult<SubscriptionResponse, SubscriptionErrorCode, unknown>;
+    }
+    const internalUserId = userIdResult.data;
+
     // 1. 구독 정보 조회
     const { data: subscription, error: subError } = await client
       .from('subscriptions')
       .select('*')
-      .eq('user_id', userId)
+      .eq('user_id', internalUserId)
       .eq('subscription_status', SUBSCRIPTION_STATUS.ACTIVE)
       .maybeSingle();
 
@@ -600,6 +635,7 @@ export async function changePaymentCardService(
 
 /**
  * 결제 내역 조회
+ * @param userId - Clerk User ID (e.g., "user_34k7JqEd8il5046H7aeiCZ1qA9G")
  */
 export async function getPaymentHistoryService(
   client: SupabaseClient,
@@ -608,11 +644,18 @@ export async function getPaymentHistoryService(
   offset: number = 0,
 ): Promise<HandlerResult<PaymentHistoryResponse, SubscriptionErrorCode, unknown>> {
   try {
+    // Clerk ID로 내부 UUID 조회
+    const userIdResult = await getUserIdByClerkId(client, userId, subscriptionErrorCodes.unauthorized);
+    if (!userIdResult.ok) {
+      return userIdResult as HandlerResult<PaymentHistoryResponse, SubscriptionErrorCode, unknown>;
+    }
+    const internalUserId = userIdResult.data;
+
     // 결제 내역 조회
     const { data: payments, error: paymentsError, count } = await client
       .from('payments')
       .select('*', { count: 'exact' })
-      .eq('user_id', userId)
+      .eq('user_id', internalUserId)
       .order('created_at', { ascending: false })
       .range(offset, offset + limit - 1);
 
