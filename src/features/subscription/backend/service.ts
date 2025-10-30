@@ -1,5 +1,6 @@
 import type { SupabaseClient } from '@supabase/supabase-js';
 import { success, failure, type HandlerResult } from '@/backend/http/response';
+import { getUserIdByClerkId } from '@/backend/utils/user-helper';
 import { TossPaymentsClient, TossPaymentsError } from '@/lib/external/tosspayments-client';
 import { daysUntilNextPayment } from '@/lib/utils/date';
 import type { SubscriptionResponse, SubscriptionRow, PaymentHistoryResponse } from './schema';
@@ -16,17 +17,25 @@ import {
 
 /**
  * 사용자의 구독 정보 조회
+ * @param userId - Clerk User ID (e.g., "user_34k7JqEd8il5046H7aeiCZ1qA9G")
  */
 export async function getSubscriptionByUserId(
   client: SupabaseClient,
   userId: string,
 ): Promise<HandlerResult<SubscriptionResponse, SubscriptionErrorCode, unknown>> {
   try {
+    // Clerk ID로 내부 UUID 조회
+    const userIdResult = await getUserIdByClerkId(client, userId, subscriptionErrorCodes.unauthorized);
+    if (!userIdResult.ok) {
+      return userIdResult as HandlerResult<SubscriptionResponse, SubscriptionErrorCode, unknown>;
+    }
+    const internalUserId = userIdResult.data;
+
     // 구독 정보 조회
     const { data: subscription, error: subError } = await client
       .from('subscriptions')
       .select('*')
-      .eq('user_id', userId)
+      .eq('user_id', internalUserId)
       .maybeSingle();
 
     if (subError) {
@@ -38,7 +47,7 @@ export async function getSubscriptionByUserId(
     const { data: user, error: userError } = await client
       .from('users')
       .select('subscription_tier, monthly_analysis_count')
-      .eq('id', userId)
+      .eq('id', internalUserId)
       .single();
 
     if (userError) {

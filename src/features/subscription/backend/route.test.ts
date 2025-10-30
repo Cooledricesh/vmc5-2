@@ -142,6 +142,36 @@ describe('Subscription Routes', () => {
       expect(body.error.code).toBe(subscriptionErrorCodes.unauthorized);
     });
 
+    it('should return 401 when getUserId returns empty string', async () => {
+      // RED: This test reproduces the actual bug
+      // When Clerk authentication fails silently, getUserId might return empty string
+      mockedGetAuthUserId.mockReturnValue('');
+
+      const res = await app.request('/subscription', {
+        method: 'GET',
+      });
+
+      expect(res.status).toBe(401);
+      const body = await res.json();
+      expect(body.ok).toBe(false);
+      expect(body.error.code).toBe(subscriptionErrorCodes.unauthorized);
+      expect(body.error.message).toContain('인증이 필요합니다');
+    });
+
+    it('should return 401 when getUserId returns undefined', async () => {
+      // RED: Another edge case
+      mockedGetAuthUserId.mockReturnValue(undefined as any);
+
+      const res = await app.request('/subscription', {
+        method: 'GET',
+      });
+
+      expect(res.status).toBe(401);
+      const body = await res.json();
+      expect(body.ok).toBe(false);
+      expect(body.error.code).toBe(subscriptionErrorCodes.unauthorized);
+    });
+
     it('should handle service errors correctly', async () => {
       vi.spyOn(service, 'getSubscriptionByUserId').mockResolvedValue({
         ok: false,

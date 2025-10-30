@@ -14,14 +14,6 @@ export function withClerkAuth() {
       const authHeader = c.req.header('authorization');
 
       if (!authHeader) {
-        // 개발 환경에서는 임시 userId 사용
-        if (process.env.NODE_ENV === 'development') {
-          console.warn('⚠️ Development mode: Using temporary userId');
-          c.set('userId' as never, 'temp-user-id' as never);
-          c.set('userEmail' as never, 'test@example.com' as never);
-          return next();
-        }
-
         const errorResponse = failure(401, 'UNAUTHORIZED', 'Authorization header is missing');
         return c.json(errorResponse, 401);
       }
