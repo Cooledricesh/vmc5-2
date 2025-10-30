@@ -28,6 +28,9 @@ const envSchema = z.object({
   TOSS_SECRET_KEY: z.string(),
   NEXT_PUBLIC_TOSS_CLIENT_KEY: z.string(),
 
+  // Cron Job Secret (for recurring payments)
+  CRON_SECRET_TOKEN: z.string().optional(),
+
   // App Configuration
   NEXT_PUBLIC_APP_URL: z.string().url().default('http://localhost:3000'),
   NEXT_PUBLIC_APP_NAME: z.string().default('사주풀이 AI'),
@@ -64,6 +67,7 @@ export type ServerEnv = Pick<
   | 'CLERK_SECRET_KEY'
   | 'GEMINI_API_KEY'
   | 'TOSS_SECRET_KEY'
+  | 'CRON_SECRET_TOKEN'
   | 'SENTRY_AUTH_TOKEN'
   | 'SENTRY_ORG'
   | 'SENTRY_PROJECT'
@@ -133,6 +137,7 @@ export function getServerEnv(): ServerEnv {
     CLERK_SECRET_KEY: env.CLERK_SECRET_KEY,
     GEMINI_API_KEY: env.GEMINI_API_KEY,
     TOSS_SECRET_KEY: env.TOSS_SECRET_KEY,
+    CRON_SECRET_TOKEN: env.CRON_SECRET_TOKEN,
     SENTRY_AUTH_TOKEN: env.SENTRY_AUTH_TOKEN,
     SENTRY_ORG: env.SENTRY_ORG,
     SENTRY_PROJECT: env.SENTRY_PROJECT,

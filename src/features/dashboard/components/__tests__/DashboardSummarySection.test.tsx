@@ -59,8 +59,12 @@ describe('DashboardSummarySection', () => {
     // Act: 컴포넌트 렌더링
     render(<DashboardSummarySection />);
 
-    // Assert: 에러 메시지가 표시되는지 확인
-    expect(screen.getByText(errorMessage)).toBeInTheDocument();
+    // Assert: 에러 메시지가 표시되는지 확인 (getAllByText 사용)
+    const errorMessages = screen.getAllByText(errorMessage);
+    expect(errorMessages.length).toBeGreaterThan(0);
+
+    // 새로고침 버튼도 확인
+    expect(screen.getByRole('button', { name: '페이지 새로고침' })).toBeInTheDocument();
   });
 
   // RED: 무료 사용자 정보 렌더링 테스트

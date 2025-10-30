@@ -8,6 +8,10 @@ export type AppConfig = {
     url: string;
     serviceRoleKey: string;
   };
+  CRON_SECRET_TOKEN?: string;
+  TOSS_SECRET_KEY?: string;
+  GEMINI_API_KEY?: string;
+  CLERK_SECRET_KEY?: string;
 };
 
 export type AppVariables = {

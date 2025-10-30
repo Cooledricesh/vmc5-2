@@ -1,76 +1,91 @@
 'use client';
 
-import { useEffect } from 'react';
-import { useSubscriptionContext } from '../context/SubscriptionContext';
-import { SDK_LOAD_TIMEOUT } from '../lib/constants';
-import { getClientEnv } from '@/backend/config/env';
+import { useState, useEffect, useCallback, useRef } from 'react';
+import { loadTossPayments } from '@tosspayments/tosspayments-sdk';
+
+// TossPaymentsInstance 타입을 직접 정의
+type TossPaymentsInstance = any;
+
+export interface TossPaymentsBillingAuthParams {
+  method: 'CARD';
+  successUrl: string;
+  failUrl: string;
+  customerName: string;
+  customerEmail: string;
+}
+
+export interface UseTossPaymentsReturn {
+  tossPayments: TossPaymentsInstance | null;
+  isLoading: boolean;
+  isLoaded: boolean;
+  error: Error | null;
+  requestBillingAuth: (
+    customerKey: string,
+    params: TossPaymentsBillingAuthParams
+  ) => Promise<void>;
+}
 
 /**
- * 토스페이먼츠 SDK 로딩 Hook
+ * 토스페이먼츠 SDK를 로드하고 빌링키 발급 요청을 관리하는 Hook
+ * Context에 독립적이며, 단독으로 사용 가능
  */
-export function useTossPayments() {
-  const { state, dispatch } = useSubscriptionContext();
-  const { tossSDK } = state;
+export function useTossPayments(): UseTossPaymentsReturn {
+  const [tossPayments, setTossPayments] = useState<TossPaymentsInstance | null>(null);
+  const [isLoading, setIsLoading] = useState(false);
+  const [isLoaded, setIsLoaded] = useState(false);
+  const [error, setError] = useState<Error | null>(null);
+  const loadingRef = useRef(false);
 
   useEffect(() => {
-    // SDK가 이미 로드되었거나 로딩 중이면 중복 로드 방지
-    if (tossSDK.isLoaded || tossSDK.isReady) {
+    // 이미 로드되었거나 로딩 중이면 중복 로드 방지
+    if (loadingRef.current || isLoaded) {
       return;
     }
 
-    // 결제 프로세스가 SDK 로딩 단계가 아니면 실행하지 않음
-    if (state.paymentProcess.step !== 'loading_sdk') {
-      return;
-    }
+    const loadSDK = async () => {
+      loadingRef.current = true;
+      setIsLoading(true);
+      setError(null);
 
-    loadTossPaymentsSDK();
-  }, [state.paymentProcess.step, tossSDK.isLoaded, tossSDK.isReady]);
+      try {
+        const clientKey = process.env.NEXT_PUBLIC_TOSS_CLIENT_KEY;
 
-  const loadTossPaymentsSDK = async () => {
-    dispatch({ type: 'LOAD_SDK_START' });
+        if (!clientKey) {
+          throw new Error('Client key is not configured');
+        }
 
-    try {
-      const env = getClientEnv();
-      const clientKey = env.NEXT_PUBLIC_TOSS_CLIENT_KEY;
+        const sdk = await loadTossPayments(clientKey);
+        setTossPayments(sdk);
+        setIsLoaded(true);
+      } catch (err) {
+        const error = err instanceof Error ? err : new Error('Failed to load SDK');
+        setError(error);
+      } finally {
+        setIsLoading(false);
+        loadingRef.current = false;
+      }
+    };
 
-      if (!clientKey) {
-        throw new Error('토스페이먼츠 클라이언트 키가 설정되지 않았습니다');
+    loadSDK();
+  }, [isLoaded]);
+
+  const requestBillingAuth = useCallback(
+    async (customerKey: string, params: TossPaymentsBillingAuthParams) => {
+      if (!tossPayments) {
+        throw new Error('토스페이먼츠 SDK가 로드되지 않았습니다');
       }
 
-      // 동적 import로 SDK 로드
-      const { loadTossPayments } = await Promise.race([
-        import('@tosspayments/tosspayments-sdk'),
-        new Promise<never>((_, reject) =>
-          setTimeout(() => reject(new Error('SDK 로딩 시간 초과')), SDK_LOAD_TIMEOUT),
-        ),
-      ]);
-
-      const tossPayments = await loadTossPayments(clientKey);
-
-      // TODO: customerKey는 Clerk user ID로 설정
-      const payment = tossPayments.payment({
-        customerKey: 'CUSTOMER_KEY_PLACEHOLDER',
-      });
-
-      dispatch({
-        type: 'LOAD_SDK_SUCCESS',
-        payload: {
-          instance: tossPayments,
-          payment,
-        },
-      });
-    } catch (error: any) {
-      console.error('Failed to load TossPayments SDK:', error);
-      dispatch({
-        type: 'LOAD_SDK_FAILURE',
-        payload: { error: error.message || '토스페이먼츠 SDK 로딩에 실패했습니다' },
-      });
-    }
-  };
+      const payment = tossPayments.payment({ customerKey });
+      await payment.requestBillingAuth(params);
+    },
+    [tossPayments]
+  );
 
   return {
-    tossSDK,
-    isLoading: state.paymentProcess.step === 'loading_sdk',
-    error: tossSDK.loadError,
+    tossPayments,
+    isLoading,
+    isLoaded,
+    error,
+    requestBillingAuth,
   };
 }

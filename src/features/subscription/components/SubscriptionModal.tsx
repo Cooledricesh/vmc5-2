@@ -229,7 +229,7 @@ export function UpgradeModal({
 export interface CancelSubscriptionModalProps {
   isOpen: boolean;
   onClose: () => void;
-  onCancel: (reason?: string) => void;
+  onCancel: (reason?: string, feedback?: string) => void;
   loading?: boolean;
 }
 
@@ -260,7 +260,7 @@ export function CancelSubscriptionModal({
       actions={{
         primary: {
           label: loading ? '처리 중...' : '구독 취소',
-          onClick: () => onCancel(reason),
+          onClick: () => onCancel(reason, feedback),
           loading,
           disabled: loading || !reason,
           variant: 'destructive',
