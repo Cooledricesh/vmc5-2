@@ -1,31 +1,54 @@
 'use client';
 
-import { useMemo, useEffect } from 'react';
+import React, { useMemo, useEffect } from 'react';
 import { Card, CardHeader, CardTitle, CardContent } from '@/components/ui/card';
 import { RadarChart } from '@/components/charts/RadarChart';
 import { useAnalysisData } from '../hooks/useAnalysisData';
 import { useAnalysisDetailContext } from '../context/AnalysisDetailContext';
 import { createFiveElementsChartData } from '../lib/utils';
 
-export function FiveElementsSection() {
+export const FiveElementsSection = React.memo(function FiveElementsSection() {
   const { data } = useAnalysisData();
   const { state, actions } = useAnalysisDetailContext();
 
   const chartData = useMemo(() => {
     if (!data || !data.analysis_result || !data.analysis_result.five_elements) return [];
     const fiveElements = data.analysis_result.five_elements;
-    if (!fiveElements.wood || !fiveElements.fire || !fiveElements.earth || !fiveElements.metal || !fiveElements.water) return [];
-    return createFiveElementsChartData(fiveElements as { wood: number; fire: number; earth: number; metal: number; water: number; });
+    // 0도 유효한 값이므로 undefined/null 체크만 수행
+    if (
+      fiveElements.wood_score === undefined ||
+      fiveElements.fire_score === undefined ||
+      fiveElements.earth_score === undefined ||
+      fiveElements.metal_score === undefined ||
+      fiveElements.water_score === undefined
+    ) return [];
+    return createFiveElementsChartData({
+      wood: fiveElements.wood_score,
+      fire: fiveElements.fire_score,
+      earth: fiveElements.earth_score,
+      metal: fiveElements.metal_score,
+      water: fiveElements.water_score,
+    });
   }, [data]);
 
+  // RadarChart에 전달할 데이터를 useMemo로 안정화
+  const radarChartData = useMemo(() => {
+    return chartData.map(item => ({
+      subject: item.subject,
+      value: item.value,
+      fullMark: item.fullMark
+    }));
+  }, [chartData]);
+
   useEffect(() => {
+    // 차트 데이터가 준비되면 로딩 상태 해제
     if (chartData.length > 0) {
-      // 차트 데이터가 준비되면 로딩 상태 해제
-      setTimeout(() => {
+      const timer = setTimeout(() => {
         actions.setChartLoading(false);
       }, 300);
+      return () => clearTimeout(timer);
     }
-  }, [chartData, actions]);
+  }, [chartData.length, actions.setChartLoading]);
 
   if (!data || !data.analysis_result) return null;
 
@@ -41,16 +64,16 @@ export function FiveElementsSection() {
           </div>
         ) : (
           <>
-            <RadarChart data={chartData as any} />
+            <RadarChart data={radarChartData} />
             <div className="mt-6 grid grid-cols-5 gap-2">
               {chartData.map((item) => (
-                <div key={item.element} className="text-center">
+                <div key={item.subject} className="text-center">
                   <div
                     className="w-full h-2 rounded mb-2"
                     style={{ backgroundColor: item.color }}
                   />
-                  <p className="text-sm font-medium">{item.element}</p>
-                  <p className="text-xs text-gray-500">{item.count}개</p>
+                  <p className="text-sm font-medium">{item.subject}</p>
+                  <p className="text-xs text-gray-500">{item.value}%</p>
                 </div>
               ))}
             </div>
@@ -59,4 +82,4 @@ export function FiveElementsSection() {
       </CardContent>
     </Card>
   );
-}
+});

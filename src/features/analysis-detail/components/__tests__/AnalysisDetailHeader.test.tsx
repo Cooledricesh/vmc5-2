@@ -19,7 +19,7 @@ const mockCloseReanalyzeModal = vi.fn();
 const mockCloseDeleteModal = vi.fn();
 
 // Default mock context value
-let mockContextValue = {
+const mockContextValue = {
   state: {
     analysis: {
       data: {

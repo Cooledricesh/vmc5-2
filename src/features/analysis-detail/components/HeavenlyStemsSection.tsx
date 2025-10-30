@@ -11,11 +11,25 @@ export function HeavenlyStemsSection() {
 
   const { heavenly_stems } = data.analysis_result;
 
+  if (!heavenly_stems) return null;
+
   const pillars = [
-    { label: '년주', value: heavenly_stems.year },
-    { label: '월주', value: heavenly_stems.month },
-    { label: '일주', value: heavenly_stems.day },
-    { label: '시주', value: heavenly_stems.hour || '미상' },
+    {
+      label: '년주',
+      value: heavenly_stems.year || '미상'
+    },
+    {
+      label: '월주',
+      value: heavenly_stems.month || '미상'
+    },
+    {
+      label: '일주',
+      value: heavenly_stems.day || '미상'
+    },
+    {
+      label: '시주',
+      value: heavenly_stems.hour || '미상'
+    },
   ];
 
   return (

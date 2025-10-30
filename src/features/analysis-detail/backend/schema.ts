@@ -10,11 +10,11 @@ export const HeavenlyStemsSchema = z.object({
 
 // 오행 스키마
 export const FiveElementsSchema = z.object({
-  wood: z.number(),
-  fire: z.number(),
-  earth: z.number(),
-  metal: z.number(),
-  water: z.number(),
+  wood_score: z.number(),
+  fire_score: z.number(),
+  earth_score: z.number(),
+  metal_score: z.number(),
+  water_score: z.number(),
 });
 
 // 운세 흐름 스키마

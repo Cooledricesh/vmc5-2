@@ -114,7 +114,13 @@ export const AnalysisDetailProvider: React.FC<{
         : '',
       genderIcon: state.analysis.data?.gender ? getGenderIcon(state.analysis.data.gender) : '',
     }),
-    [state]
+    [
+      state.user.subscription_tier,
+      state.user.remaining_count,
+      state.analysis.data?.created_at,
+      state.analysis.data?.ai_model,
+      state.analysis.data?.gender,
+    ]
   );
 
   // 초기 데이터 로드
@@ -122,9 +128,25 @@ export const AnalysisDetailProvider: React.FC<{
     fetchAnalysis(analysisId);
   }, [analysisId, fetchAnalysis]);
 
-  const value: AnalysisDetailContextValue = {
-    state,
-    actions: {
+  // Context value를 useMemo로 최적화하여 불필요한 리렌더링 방지
+  const value: AnalysisDetailContextValue = useMemo(
+    () => ({
+      state,
+      actions: {
+        fetchAnalysis,
+        setActiveTab,
+        openReanalyzeModal,
+        closeReanalyzeModal,
+        reanalyzeAnalysis,
+        openDeleteModal,
+        closeDeleteModal,
+        deleteAnalysis,
+        setChartLoading,
+      },
+      computed,
+    }),
+    [
+      state,
       fetchAnalysis,
       setActiveTab,
       openReanalyzeModal,
@@ -134,9 +156,9 @@ export const AnalysisDetailProvider: React.FC<{
       closeDeleteModal,
       deleteAnalysis,
       setChartLoading,
-    },
-    computed,
-  };
+      computed,
+    ]
+  );
 
   return (
     <AnalysisDetailContext.Provider value={value}>{children}</AnalysisDetailContext.Provider>

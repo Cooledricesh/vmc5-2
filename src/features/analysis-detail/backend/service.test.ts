@@ -192,15 +192,26 @@ describe('Analysis Detail Service', () => {
 
     it('should return 500 on database error', async () => {
       // Arrange: Mock database error
-      mockSupabase.from = vi.fn(() => ({
+      // First call returns user ID successfully, second call returns error
+      let callCount = 0;
+      mockSupabase.from = vi.fn((table: string) => ({
         select: vi.fn(() => ({
           eq: vi.fn(() => ({
-            maybeSingle: vi.fn(() =>
-              Promise.resolve({
+            maybeSingle: vi.fn(() => {
+              callCount++;
+              if (callCount === 1) {
+                // First call: getUserIdByClerkId - success
+                return Promise.resolve({
+                  data: { id: mockInternalUserId },
+                  error: null,
+                });
+              }
+              // Second call: getAnalysisById - error
+              return Promise.resolve({
                 data: null,
                 error: { message: 'Database connection failed' },
-              })
-            ),
+              });
+            }),
           })),
         })),
       })) as any;

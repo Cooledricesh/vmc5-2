@@ -304,20 +304,37 @@ describe('New Analysis Service', () => {
         updated_at: '2024-01-01T00:05:00Z',
       };
 
-      mockSupabase.from = vi.fn(() => ({
-        select: vi.fn(() => ({
-          eq: vi.fn(() => ({
+      mockSupabase.from = vi.fn((table: string) => {
+        if (table === 'users') {
+          return {
+            select: vi.fn(() => ({
+              eq: vi.fn(() => ({
+                maybeSingle: vi.fn(() =>
+                  Promise.resolve({
+                    data: { id: mockUserId },
+                    error: null,
+                  })
+                ),
+              })),
+            })),
+          };
+        }
+        // table === 'analyses'
+        return {
+          select: vi.fn(() => ({
             eq: vi.fn(() => ({
-              maybeSingle: vi.fn(() =>
-                Promise.resolve({
-                  data: mockAnalysisData,
-                  error: null,
-                })
-              ),
+              eq: vi.fn(() => ({
+                maybeSingle: vi.fn(() =>
+                  Promise.resolve({
+                    data: mockAnalysisData,
+                    error: null,
+                  })
+                ),
+              })),
             })),
           })),
-        })),
-      })) as any;
+        };
+      }) as any;
 
       // Act
       const result = await getAnalysisStatus(
@@ -363,14 +380,15 @@ describe('New Analysis Service', () => {
                       analysis_result: null,
                       created_at: '2024-01-01T00:00:00Z',
                       updated_at: '2024-01-01T00:00:00Z',
-                  },
-                  error: null,
-                })
-              ),
+                    },
+                    error: null,
+                  })
+                ),
+              })),
             })),
           })),
-        })),
-      })) as any;
+        };
+      }) as any;
 
       // Act
       const result = await getAnalysisStatus(
@@ -387,20 +405,37 @@ describe('New Analysis Service', () => {
 
     it('should return 404 when analysis not found', async () => {
       // Arrange
-      mockSupabase.from = vi.fn(() => ({
-        select: vi.fn(() => ({
-          eq: vi.fn(() => ({
+      mockSupabase.from = vi.fn((table: string) => {
+        if (table === 'users') {
+          return {
+            select: vi.fn(() => ({
+              eq: vi.fn(() => ({
+                maybeSingle: vi.fn(() =>
+                  Promise.resolve({
+                    data: { id: mockUserId },
+                    error: null,
+                  })
+                ),
+              })),
+            })),
+          };
+        }
+        // table === 'analyses'
+        return {
+          select: vi.fn(() => ({
             eq: vi.fn(() => ({
-              maybeSingle: vi.fn(() =>
-                Promise.resolve({
-                  data: null,
-                  error: null,
-                })
-              ),
+              eq: vi.fn(() => ({
+                maybeSingle: vi.fn(() =>
+                  Promise.resolve({
+                    data: null,
+                    error: null,
+                  })
+                ),
+              })),
             })),
           })),
-        })),
-      })) as any;
+        };
+      }) as any;
 
       // Act
       const result = await getAnalysisStatus(
@@ -417,9 +452,25 @@ describe('New Analysis Service', () => {
 
     it('should return 500 on database error', async () => {
       // Arrange
-      mockSupabase.from = vi.fn(() => ({
+      let callCount = 0;
+      mockSupabase.from = vi.fn((table: string) => ({
         select: vi.fn(() => ({
           eq: vi.fn(() => ({
+            maybeSingle: vi.fn(() => {
+              callCount++;
+              if (callCount === 1) {
+                // First call: getUserIdByClerkId - success
+                return Promise.resolve({
+                  data: { id: mockUserId },
+                  error: null,
+                });
+              }
+              // Second call: getAnalysisStatus - error
+              return Promise.resolve({
+                data: null,
+                error: { message: 'Database error' },
+              });
+            }),
             eq: vi.fn(() => ({
               maybeSingle: vi.fn(() =>
                 Promise.resolve({

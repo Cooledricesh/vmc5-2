@@ -46,9 +46,19 @@ export function getGenderIcon(gender: string): string {
 }
 
 /**
+ * 오행 차트 데이터 타입
+ */
+export type FiveElementChartDataItem = {
+  subject: string;
+  value: number;
+  fullMark: number;
+  color: string;
+};
+
+/**
  * 오행 차트 데이터 생성
- * @param fiveElements 오행 데이터
- * @returns 차트 데이터 배열
+ * @param fiveElements 오행 데이터 (0-100 범위의 점수)
+ * @returns 차트 데이터 배열 (RadarChart 호환 형식)
  */
 export function createFiveElementsChartData(fiveElements: {
   wood: number;
@@ -56,12 +66,13 @@ export function createFiveElementsChartData(fiveElements: {
   earth: number;
   metal: number;
   water: number;
-}) {
+}): FiveElementChartDataItem[] {
+  // RadarChart는 subject, value 키를 기대함
   return [
-    { element: '목(木)', count: fiveElements.wood, fullMark: 5, color: FIVE_ELEMENTS_COLORS.wood },
-    { element: '화(火)', count: fiveElements.fire, fullMark: 5, color: FIVE_ELEMENTS_COLORS.fire },
-    { element: '토(土)', count: fiveElements.earth, fullMark: 5, color: FIVE_ELEMENTS_COLORS.earth },
-    { element: '금(金)', count: fiveElements.metal, fullMark: 5, color: FIVE_ELEMENTS_COLORS.metal },
-    { element: '수(水)', count: fiveElements.water, fullMark: 5, color: FIVE_ELEMENTS_COLORS.water },
+    { subject: '목(木)', value: fiveElements.wood, fullMark: 100, color: FIVE_ELEMENTS_COLORS.wood },
+    { subject: '화(火)', value: fiveElements.fire, fullMark: 100, color: FIVE_ELEMENTS_COLORS.fire },
+    { subject: '토(土)', value: fiveElements.earth, fullMark: 100, color: FIVE_ELEMENTS_COLORS.earth },
+    { subject: '금(金)', value: fiveElements.metal, fullMark: 100, color: FIVE_ELEMENTS_COLORS.metal },
+    { subject: '수(水)', value: fiveElements.water, fullMark: 100, color: FIVE_ELEMENTS_COLORS.water },
   ];
 }

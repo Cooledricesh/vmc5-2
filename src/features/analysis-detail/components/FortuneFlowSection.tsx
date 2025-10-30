@@ -10,6 +10,11 @@ export function FortuneFlowSection() {
 
   const { fortune_flow } = data.analysis_result;
 
+  if (!fortune_flow) return null;
+
+  const majorFortuneText = fortune_flow.major_fortune || '정보 없음';
+  const yearFortuneText = fortune_flow.yearly_fortune || '정보 없음';
+
   return (
     <Card className="mb-6">
       <CardHeader>
@@ -19,11 +24,11 @@ export function FortuneFlowSection() {
         <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
           <div>
             <h3 className="text-lg font-semibold mb-2">대운 (大運)</h3>
-            <p className="text-gray-700 whitespace-pre-wrap">{fortune_flow.major_fortune}</p>
+            <p className="text-gray-700 whitespace-pre-wrap">{majorFortuneText}</p>
           </div>
           <div>
             <h3 className="text-lg font-semibold mb-2">세운 (歲運)</h3>
-            <p className="text-gray-700 whitespace-pre-wrap">{fortune_flow.yearly_fortune}</p>
+            <p className="text-gray-700 whitespace-pre-wrap">{yearFortuneText}</p>
           </div>
         </div>
       </CardContent>

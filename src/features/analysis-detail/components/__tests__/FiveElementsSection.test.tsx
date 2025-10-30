@@ -9,16 +9,8 @@ vi.mock('@/components/charts/RadarChart', () => ({
   ),
 }));
 
-// Mock createFiveElementsChartData
-vi.mock('../../lib/utils', () => ({
-  createFiveElementsChartData: vi.fn((fiveElements) => [
-    { element: '목(木)', count: fiveElements.wood, fullMark: 5, color: '#10B981' },
-    { element: '화(火)', count: fiveElements.fire, fullMark: 5, color: '#EF4444' },
-    { element: '토(土)', count: fiveElements.earth, fullMark: 5, color: '#D97706' },
-    { element: '금(金)', count: fiveElements.metal, fullMark: 5, color: '#6B7280' },
-    { element: '수(水)', count: fiveElements.water, fullMark: 5, color: '#3B82F6' },
-  ]),
-}));
+// Import actual implementation and mock other functions if needed
+import { createFiveElementsChartData } from '../../lib/utils';
 
 // Mock hooks and context
 let mockAnalysisData = {
@@ -26,11 +18,11 @@ let mockAnalysisData = {
     id: 'test-id',
     analysis_result: {
       five_elements: {
-        wood: 2,
-        fire: 1,
-        earth: 3,
-        metal: 1,
-        water: 1,
+        wood_score: 2,
+        fire_score: 1,
+        earth_score: 3,
+        metal_score: 1,
+        water_score: 1,
       },
     },
   },
@@ -69,11 +61,11 @@ describe('FiveElementsSection', () => {
         id: 'test-id',
         analysis_result: {
           five_elements: {
-            wood: 2,
-            fire: 1,
-            earth: 3,
-            metal: 1,
-            water: 1,
+            wood_score: 2,
+            fire_score: 1,
+            earth_score: 3,
+            metal_score: 1,
+            water_score: 1,
           },
         },
       } as any,
@@ -96,12 +88,12 @@ describe('FiveElementsSection', () => {
     it('should render all five elements with counts', () => {
       render(<FiveElementsSection />);
       expect(screen.getByText('목(木)')).toBeInTheDocument();
-      expect(screen.getByText('2개')).toBeInTheDocument();
+      expect(screen.getByText('2%')).toBeInTheDocument();
       expect(screen.getByText('화(火)')).toBeInTheDocument();
-      const oneGaes = screen.getAllByText('1개');
-      expect(oneGaes.length).toBe(3); // 화, 금, 수가 모두 1개
+      const onePercents = screen.getAllByText('1%');
+      expect(onePercents.length).toBe(3); // 화, 금, 수가 모두 1%
       expect(screen.getByText('토(土)')).toBeInTheDocument();
-      expect(screen.getByText('3개')).toBeInTheDocument();
+      expect(screen.getByText('3%')).toBeInTheDocument();
       expect(screen.getByText('금(金)')).toBeInTheDocument();
       expect(screen.getByText('수(水)')).toBeInTheDocument();
     });
@@ -143,9 +135,9 @@ describe('FiveElementsSection', () => {
         id: 'test-id',
         analysis_result: {
           five_elements: {
-            wood: 2,
-            fire: 1,
-            // missing earth, metal, water
+            wood_score: 2,
+            fire_score: 1,
+            // missing earth_score, metal_score, water_score
           },
         },
       } as any;

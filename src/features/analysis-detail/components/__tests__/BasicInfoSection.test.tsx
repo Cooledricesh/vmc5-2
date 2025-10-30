@@ -8,7 +8,7 @@ vi.mock('@/lib/utils/date', () => ({
 }));
 
 // Mock AnalysisDetailContext
-let mockContextValue = {
+const mockContextValue = {
   state: {
     analysis: {
       data: {

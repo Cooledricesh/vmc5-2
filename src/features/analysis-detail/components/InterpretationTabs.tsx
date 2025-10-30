@@ -15,7 +15,29 @@ export function InterpretationTabs() {
 
   const { interpretation } = data.analysis_result;
 
-  const currentContent = interpretation[activeTab];
+  // 탭별 컨텐츠 매핑
+  const getContent = () => {
+    if (!interpretation) return '정보 없음';
+
+    switch (activeTab) {
+      case 'personality':
+        return interpretation.personality || '정보 없음';
+
+      case 'wealth':
+        return interpretation.wealth || '정보 없음';
+
+      case 'health':
+        return interpretation.health || '정보 없음';
+
+      case 'love':
+        return interpretation.love || '정보 없음';
+
+      default:
+        return '정보 없음';
+    }
+  };
+
+  const currentContent = getContent();
 
   return (
     <Card>
