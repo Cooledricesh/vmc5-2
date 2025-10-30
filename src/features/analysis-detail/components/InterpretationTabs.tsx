@@ -13,24 +13,26 @@ export function InterpretationTabs() {
 
   if (!data || !data.analysis_result) return null;
 
-  const { interpretation } = data.analysis_result;
+  const { personality, career_wealth, health, relationships } = data.analysis_result;
 
   // 탭별 컨텐츠 매핑
   const getContent = () => {
-    if (!interpretation) return '정보 없음';
-
     switch (activeTab) {
       case 'personality':
-        return interpretation.personality || '정보 없음';
+        if (!personality) return '정보 없음';
+        return `### 강점\n- ${personality.strengths?.join('\n- ') || '정보 없음'}\n\n### 약점\n- ${personality.weaknesses?.join('\n- ') || '정보 없음'}\n\n### 주요 특징\n${personality.characteristics || '정보 없음'}`;
 
       case 'wealth':
-        return interpretation.wealth || '정보 없음';
+        if (!career_wealth) return '정보 없음';
+        return `### 적합한 직업\n- ${career_wealth.suitable_careers?.join('\n- ') || '정보 없음'}\n\n### 재물운\n${career_wealth.wealth_fortune || '정보 없음'}\n\n### 경력 조언\n${career_wealth.career_advice || '정보 없음'}`;
 
       case 'health':
-        return interpretation.health || '정보 없음';
+        if (!health) return '정보 없음';
+        return `### 주의 부위\n${health.vulnerable_areas || '정보 없음'}\n\n### 건강 조언\n${health.health_advice || '정보 없음'}\n\n### 유리한 오행\n${health.favorable_elements || '정보 없음'}`;
 
       case 'love':
-        return interpretation.love || '정보 없음';
+        if (!relationships) return '정보 없음';
+        return `### 결혼/연애운\n${relationships.marriage_compatibility || '정보 없음'}\n\n### 잘 맞는 유형\n- ${relationships.compatible_types?.join('\n- ') || '정보 없음'}\n\n### 주의할 유형\n- ${relationships.challenging_types?.join('\n- ') || '정보 없음'}\n\n### 관계 조언\n${relationships.relationship_advice || '정보 없음'}`;
 
       default:
         return '정보 없음';
